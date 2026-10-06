@@ -1,5 +1,6 @@
 package com.royalcurtains.storemanagement.web;
 
+import com.royalcurtains.storemanagement.repository.StoreRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -10,16 +11,23 @@ import java.security.Principal;
 @Controller
 public class HomeController {
 
-    // Shows the welcome page when the application opens.
+    private final StoreRepository storeRepository;
+
+    // Spring provides the store repository when the controller starts.
+    public HomeController(StoreRepository storeRepository) {
+        this.storeRepository = storeRepository;
+    }
+
+    // Shows the welcome page with store names from the database.
     @GetMapping({"/", "/home"})
     public String home(Model model) {
-        model.addAttribute("systemName", "Royal Curtains Store Management");
+        String[] stores = storeRepository.findAll()
+                .stream()
+                .map(store -> store.getName())
+                .toArray(String[]::new);
 
-        // These store names will later come from the database.
-        model.addAttribute("stores", new String[]{
-                "Royal Curtains Store",
-                "Kabul Dubai Curtains Store"
-        });
+        model.addAttribute("systemName", "Curtains Store Management");
+        model.addAttribute("stores", stores);
 
         return "home";
     }
@@ -30,21 +38,23 @@ public class HomeController {
         return "login";
     }
 
-    // Displays the dashboard after the manager logs in.
+    // Shows the dashboard after the manager logs in.
     @GetMapping("/dashboard")
     public String dashboard(
             @RequestParam(defaultValue = "all") String store,
             Model model,
             Principal principal) {
 
-        // Decide which store view the manager selected.
-        String selectedStore = switch (store.toLowerCase()) {
-            case "royal" -> "Royal Curtains Store";
-            case "kabul" -> "Kabul Dubai Curtains Store";
-            default -> "All Stores";
-        };
+        String selectedStore;
 
-        // Send the logged-in username and selected store to the page.
+        if (store.equalsIgnoreCase("all")) {
+            selectedStore = "All Stores";
+        } else {
+            selectedStore = storeRepository.findByCode(store.toLowerCase())
+                    .map(foundStore -> foundStore.getName())
+                    .orElse("All Stores");
+        }
+
         model.addAttribute("username", principal.getName());
         model.addAttribute("selectedStore", selectedStore);
 
