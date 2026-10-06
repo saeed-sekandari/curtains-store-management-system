@@ -9,11 +9,13 @@ import java.util.Optional;
 
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    // Loads the assigned store when checking login information.
+    @EntityGraph(attributePaths = "assignedStore")
     Optional<User> findByUsername(String username);
 
     boolean existsByUsername(String username);
 
-    // Loads the assigned store together with each user.
+    // Loads assigned stores when displaying the user accounts page.
     @EntityGraph(attributePaths = "assignedStore")
     List<User> findAll();
 }

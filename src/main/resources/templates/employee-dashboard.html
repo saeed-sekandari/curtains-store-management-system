@@ -1,35 +1,140 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Employee Dashboard</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 27px 7%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.6rem;
+        }
+
+        .logout-button {
+            background: transparent;
+            color: white;
+            border: 1px solid white;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: 50px auto;
+            padding: 0 24px;
+        }
+
+        .intro {
+            color: #536174;
+            font-size: 1.05rem;
+        }
+
+        .store-box {
+            background: white;
+            border-left: 5px solid #d69b2d;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 30px 0;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .08);
+        }
+
+        .store-box h2 {
+            margin-top: 0;
+            color: #173b68;
+        }
+
+        .links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .link-button {
+            display: inline-block;
+            background: #173b68;
+            color: white;
+            padding: 13px 20px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        .link-button:hover {
+            background: #28598e;
+        }
+    </style>
 </head>
+
 <body>
 
-<main>
+<header class="topbar">
     <h1>Employee Dashboard</h1>
-
-    <p>
-        Welcome, <span th:text="${username}">Employee</span>.
-    </p>
-
-    <p>
-        This page will contain the work assigned to you.
-    </p>
-
-    <ul>
-        <li>View customer orders</li>
-        <li>Update order progress</li>
-        <li>View assigned tasks</li>
-    </ul>
 
     <form th:action="@{/logout}" method="post">
         <input type="hidden"
                th:name="${_csrf.parameterName}"
                th:value="${_csrf.token}">
 
-        <button type="submit">Logout</button>
+        <button class="logout-button" type="submit">
+            Log out
+        </button>
     </form>
+</header>
+
+<main>
+    <h2>
+        Welcome, <span th:text="${fullName}">Employee</span>
+    </h2>
+
+    <p class="intro">
+        You are signed in as <strong th:text="${role}">EMPLOYEE</strong>.
+    </p>
+
+    <section class="store-box">
+        <h2>Your Assigned Store</h2>
+
+        <p th:text="${assignedStoreName}">
+            Store name
+        </p>
+    </section>
+
+    <div class="links"
+         th:if="${assignedStoreCode != ''}">
+
+        <a class="link-button"
+           th:href="@{/customers(store=${assignedStoreCode})}">
+            View Customers
+        </a>
+
+        <a class="link-button"
+           th:href="@{/orders(store=${assignedStoreCode})}">
+            View Orders
+        </a>
+    </div>
 </main>
 
 </body>

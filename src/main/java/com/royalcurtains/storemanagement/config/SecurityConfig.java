@@ -36,17 +36,29 @@ public class SecurityConfig {
                 .userDetailsService(userDetailsService)
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/home", "/login", "/css/**")
-                        .permitAll()
+                        .requestMatchers(
+                                "/",
+                                "/home",
+                                "/login",
+                                "/access-denied",
+                                "/css/**"
+                        ).permitAll()
 
-                        .requestMatchers("/dashboard", "/users/**")
-                        .hasRole("MANAGER")
+                        .requestMatchers(
+                                "/dashboard",
+                                "/users/**"
+                        ).hasRole("MANAGER")
 
                         .requestMatchers("/employee-dashboard")
                         .authenticated()
 
                         .anyRequest()
                         .authenticated()
+                )
+
+                // Shows a friendly page instead of the default Whitelabel page.
+                .exceptionHandling(exception -> exception
+                        .accessDeniedPage("/access-denied")
                 )
 
                 .formLogin(form -> form

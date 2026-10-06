@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Access Denied</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .card {
+            max-width: 550px;
+            margin: 100px auto;
+            padding: 35px;
+            background: white;
+            border-radius: 14px;
+            text-align: center;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
+        }
+
+        h1 {
+            color: #b42318;
+        }
+
+        p {
+            color: #536174;
+            line-height: 1.6;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 20px;
+            background: #173b68;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+<main class="card">
+    <h1>Access Denied</h1>
+
+    <p>
+        You do not have permission to view this store's information.
+    </p>
+
+    <p>
+        Please return to your dashboard or contact your manager.
+    </p>
+
+    <a href="/employee-dashboard">
+        Return to Dashboard
+    </a>
+</main>
+
+</body>
+</html>
