@@ -1,25 +1,26 @@
 package com.royalcurtains.storemanagement.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.royalcurtains.storemanagement.security.DatabaseUserDetailsService;
+import com.royalcurtains.storemanagement.security.RoleBasedLoginSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 public class SecurityConfig {
 
-    @Value("${app.security.manager-username}")
-    private String managerUsername;
+    private final DatabaseUserDetailsService userDetailsService;
+    private final RoleBasedLoginSuccessHandler loginSuccessHandler;
 
-    @Value("${app.security.manager-password}")
-    private String managerPassword;
+    public SecurityConfig(
+            DatabaseUserDetailsService userDetailsService,
+            RoleBasedLoginSuccessHandler loginSuccessHandler) {
+        this.userDetailsService = userDetailsService;
+        this.loginSuccessHandler = loginSuccessHandler;
+    }
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -27,29 +28,33 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(PasswordEncoder passwordEncoder) {
-        UserDetails manager = User.builder()
-                .username(managerUsername)
-                .password(passwordEncoder.encode(managerPassword))
-                .roles("MANAGER")
-                .build();
+    public SecurityFilterChain securityFilterChain(HttpSecurity http)
+            throws Exception {
 
-        return new InMemoryUserDetailsManager(manager);
-    }
-
-    @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // Login details are checked against the users table.
+                .userDetailsService(userDetailsService)
+
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/home", "/login", "/css/**").permitAll()
-                        .requestMatchers("/dashboard").hasRole("MANAGER")
-                        .anyRequest().authenticated()
+                        .requestMatchers("/", "/home", "/login", "/css/**")
+                        .permitAll()
+
+                        .requestMatchers("/dashboard", "/users/**")
+                        .hasRole("MANAGER")
+
+                        .requestMatchers("/employee-dashboard")
+                        .authenticated()
+
+                        .anyRequest()
+                        .authenticated()
                 )
+
                 .formLogin(form -> form
                         .loginPage("/login")
-                        .defaultSuccessUrl("/dashboard", true)
+                        .successHandler(loginSuccessHandler)
                         .permitAll()
                 )
+
                 .logout(logout -> logout
                         .logoutSuccessUrl("/")
                         .permitAll()

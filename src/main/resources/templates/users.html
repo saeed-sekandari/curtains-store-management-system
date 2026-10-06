@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>User Accounts</title>
+</head>
+<body>
+
+<main>
+    <h1>User Accounts</h1>
+
+    <p>
+        This page shows the accounts that can log in to the system.
+    </p>
+
+    <p>
+        <a href="/users/new">Create New Account</a>
+        |
+        <a href="/dashboard">Back to Dashboard</a>
+    </p>
+
+    <table border="1" cellpadding="8">
+        <thead>
+        <tr>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Role</th>
+            <th>Status</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="user : ${users}">
+            <td th:text="${user.username}">manager</td>
+            <td th:text="${user.fullName}">System Manager</td>
+            <td th:text="${user.role}">MANAGER</td>
+            <td th:text="${user.enabled ? 'Active' : 'Disabled'}">Active</td>
+        </tr>
+
+        <tr th:if="${#lists.isEmpty(users)}">
+            <td colspan="4">No user accounts found.</td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+
+</body>
+</html>
