@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customers</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 18px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+        }
+
+        main {
+            max-width: 1050px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .page-header h2 {
+            color: #173b68;
+        }
+
+        .button {
+            background: #d69b2d;
+            color: white;
+            padding: 11px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        .customer-list {
+            margin-top: 25px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .customer-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1.5fr;
+            gap: 15px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .customer-row.header {
+            background: #edf2f7;
+            font-weight: bold;
+            color: #173b68;
+        }
+
+        .empty-message {
+            background: white;
+            padding: 25px;
+            margin-top: 25px;
+            border-radius: 12px;
+            color: #667085;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Shows the store whose customers are being viewed. -->
+<header class="topbar">
+    <h1 th:text="${selectedStore.name}">
+        Store Customers
+    </h1>
+</header>
+
+<main>
+    <section class="page-header">
+        <h2>Customers</h2>
+
+        <!-- Opens the form for adding a customer to this store. -->
+        <a class="button"
+           th:href="@{/customers/new(store=${selectedStore.code})}">
+            Add Customer
+        </a>
+    </section>
+
+    <!-- Displays the customer list when customers exist. -->
+    <section class="customer-list" th:if="${!customers.isEmpty()}">
+        <div class="customer-row header">
+            <div>Name</div>
+            <div>Phone</div>
+            <div>Address</div>
+        </div>
+
+        <div class="customer-row" th:each="customer : ${customers}">
+            <div th:text="${customer.fullName}">Customer name</div>
+            <div th:text="${customer.phone}">Phone number</div>
+            <div th:text="${customer.address}">Customer address</div>
+        </div>
+    </section>
+
+    <!-- Appears when the store has no customers yet. -->
+    <p class="empty-message" th:if="${customers.isEmpty()}">
+        No customers have been added to this store yet.
+    </p>
+</main>
+
+</body>
+</html>

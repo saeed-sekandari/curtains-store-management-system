@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Customer</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 18px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+        }
+
+        .form-card {
+            max-width: 600px;
+            margin: 45px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
+        }
+
+        h2 {
+            color: #173b68;
+            margin-top: 0;
+        }
+
+        .store-name {
+            color: #667085;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-top: 18px;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        button {
+            margin-top: 25px;
+            padding: 12px 20px;
+            background: #d69b2d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #b9801e;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Shows the store where this customer will be saved. -->
+<header class="topbar">
+    <h1>Customer Management</h1>
+</header>
+
+<main class="form-card">
+    <h2>Add New Customer</h2>
+
+    <p class="store-name">
+        Store:
+        <strong th:text="${selectedStore.name}">
+            Selected store
+        </strong>
+    </p>
+
+    <!-- Sends the new customer information to the controller. -->
+    <form th:action="@{/customers}" th:object="${customer}" method="post">
+
+        <!-- Tells the controller which store owns this customer. -->
+        <input type="hidden"
+               name="storeCode"
+               th:value="${selectedStore.code}">
+
+        <label for="fullName">Full Name</label>
+        <input id="fullName"
+               type="text"
+               th:field="*{fullName}"
+               required>
+
+        <label for="phone">Phone Number</label>
+        <input id="phone"
+               type="tel"
+               th:field="*{phone}"
+               required>
+
+        <label for="address">Address</label>
+        <textarea id="address"
+                  th:field="*{address}"></textarea>
+
+        <button type="submit">
+            Save Customer
+        </button>
+    </form>
+</main>
+
+</body>
+</html>
