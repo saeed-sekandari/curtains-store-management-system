@@ -2,8 +2,10 @@ package com.royalcurtains.storemanagement.web;
 
 import com.royalcurtains.storemanagement.model.Customer;
 import com.royalcurtains.storemanagement.model.Store;
+import com.royalcurtains.storemanagement.model.User;
 import com.royalcurtains.storemanagement.repository.CustomerRepository;
 import com.royalcurtains.storemanagement.repository.StoreRepository;
+import com.royalcurtains.storemanagement.repository.UserRepository;
 import com.royalcurtains.storemanagement.security.StoreAccessService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -19,14 +21,17 @@ public class CustomerController {
 
     private final CustomerRepository customerRepository;
     private final StoreRepository storeRepository;
+    private final UserRepository userRepository;
     private final StoreAccessService storeAccessService;
 
     public CustomerController(
             CustomerRepository customerRepository,
             StoreRepository storeRepository,
+            UserRepository userRepository,
             StoreAccessService storeAccessService) {
         this.customerRepository = customerRepository;
         this.storeRepository = storeRepository;
+        this.userRepository = userRepository;
         this.storeAccessService = storeAccessService;
     }
 
@@ -43,9 +48,11 @@ public class CustomerController {
                 principal,
                 selectedStore.getCode());
 
+        User currentUser = findCurrentUser(principal);
+
         model.addAttribute("store", selectedStore);
         model.addAttribute("selectedStore", selectedStore);
-
+        model.addAttribute("currentRole", currentUser.getRole().name());
         model.addAttribute(
                 "customers",
                 customerRepository.findByStoreId(selectedStore.getId()));
@@ -93,7 +100,12 @@ public class CustomerController {
                 + selectedStore.getCode();
     }
 
-    // Finds a store using its short code.
+    private User findCurrentUser(Principal principal) {
+        return userRepository.findByUsername(principal.getName())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found"));
+    }
+
     private Store findStore(String storeCode) {
         return storeRepository.findByCode(storeCode.toLowerCase())
                 .orElseThrow(() ->

@@ -1,156 +1,157 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>New Order</title>
-
-    <style>
-        body {
-            margin: 0;
-            background: #f4f7fb;
-            color: #172033;
-            font-family: Arial, sans-serif;
-        }
-
-        .topbar {
-            background: #173b68;
-            color: white;
-            padding: 18px 7%;
-        }
-
-        .topbar h1 {
-            margin: 0;
-        }
-
-        .form-card {
-            max-width: 600px;
-            margin: 45px auto;
-            padding: 30px;
-            background: white;
-            border-radius: 14px;
-            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
-        }
-
-        h2 {
-            color: #173b68;
-            margin-top: 0;
-        }
-
-        .store-name {
-            color: #667085;
-            margin-bottom: 25px;
-        }
-
-        label {
-            display: block;
-            margin-top: 18px;
-            margin-bottom: 7px;
-            font-weight: bold;
-        }
-
-        input,
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            font-size: 1rem;
-        }
-
-        button {
-            margin-top: 25px;
-            padding: 12px 20px;
-            background: #d69b2d;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #b9801e;
-        }
-
-        .notice {
-            color: #667085;
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: 8px;
-        }
-    </style>
 </head>
 
 <body>
 
-<!-- Shows the store where this order will be saved. -->
-<header class="topbar">
-    <h1>Order Management</h1>
-</header>
+<main>
+    <h1>New Order</h1>
 
-<main class="form-card">
-    <h2>Create New Order</h2>
-
-    <p class="store-name">
+    <p>
         Store:
         <strong th:text="${selectedStore.name}">
-            Selected store
+            Store Name
         </strong>
     </p>
 
-    <!-- Shows a helpful message if the store has no customers yet. -->
-    <p class="notice" th:if="${customers.isEmpty()}">
-        Add a customer before creating an order.
-    </p>
+    <form action="/orders" method="post">
 
-    <!-- Sends the order information to the controller. -->
-    <form th:action="@{/orders}" th:object="${order}" method="post">
+        <!-- Protects the form from unwanted requests. -->
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}">
 
-        <!-- Identifies the store that owns this order. -->
         <input type="hidden"
                name="storeCode"
                th:value="${selectedStore.code}">
 
-        <label for="orderNumber">Order Number</label>
-        <input id="orderNumber"
-               type="text"
-               th:field="*{orderNumber}"
-               placeholder="Example: 1001"
-               required>
+        <h2>Customer</h2>
 
-        <label for="customerId">Customer</label>
-        <select id="customerId"
-                name="customerId"
-                required>
-            <option value="">Choose a customer</option>
+        <p>
+            Select an existing customer, or enter information for a new customer.
+        </p>
 
-            <option th:each="customer : ${customers}"
-                    th:value="${customer.id}"
-                    th:text="${customer.fullName}">
-                Customer name
-            </option>
-        </select>
+        <div>
+            <label for="customerId">Existing Customer:</label>
 
-        <label for="totalAmount">Total Amount (AFN)</label>
-        <input id="totalAmount"
-               type="number"
-               min="0"
-               step="1"
-               th:field="*{totalAmount}"
-               required>
+            <select id="customerId"
+                    name="customerId">
 
-        <label for="depositAmount">Deposit Amount (AFN)</label>
-        <input id="depositAmount"
-               type="number"
-               min="0"
-               step="1"
-               th:field="*{depositAmount}"
-               required>
+                <option value="">
+                    New Customer
+                </option>
+
+                <option th:each="customer : ${customers}"
+                        th:value="${customer.id}"
+                        th:text="${customer.fullName}">
+                    Existing Customer
+                </option>
+            </select>
+        </div>
+
+        <h3>New Customer Information</h3>
+
+        <div>
+            <label for="newCustomerName">Customer Name:</label>
+
+            <input type="text"
+                   id="newCustomerName"
+                   name="newCustomerName">
+        </div>
+
+        <br>
+
+        <div>
+            <label for="newCustomerPhone">Phone:</label>
+
+            <input type="text"
+                   id="newCustomerPhone"
+                   name="newCustomerPhone">
+        </div>
+
+        <br>
+
+        <div>
+            <label for="newCustomerAddress">Address:</label>
+
+            <input type="text"
+                   id="newCustomerAddress"
+                   name="newCustomerAddress">
+        </div>
+
+        <h2>Order Information</h2>
+
+        <div>
+            <label for="orderNumber">Order Number:</label>
+
+            <input type="text"
+                   id="orderNumber"
+                   name="orderNumber"
+                   required>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="totalAmount">Total Amount (AFN):</label>
+
+            <input type="number"
+                   id="totalAmount"
+                   name="totalAmount"
+                   min="0"
+                   step="1"
+                   required>
+        </div>
+
+        <h2>Initial Payment</h2>
+
+        <p>
+            Leave the amount empty if the customer has not paid yet.
+        </p>
+
+        <div>
+            <label for="initialPaymentAmount">
+                First Payment or Down Payment (AFN):
+            </label>
+
+            <input type="number"
+                   id="initialPaymentAmount"
+                   name="initialPaymentAmount"
+                   min="0"
+                   step="1">
+        </div>
+
+        <br>
+
+        <div>
+            <label for="initialPaymentMethod">
+                Payment Method:
+            </label>
+
+            <select id="initialPaymentMethod"
+                    name="initialPaymentMethod">
+
+                <option value="CASH">Cash</option>
+                <option value="BANK_TRANSFER">Bank Transfer</option>
+                <option value="OTHER">Other</option>
+            </select>
+        </div>
+
+        <br>
 
         <button type="submit">
             Save Order
         </button>
+
+        <a th:href="@{/orders(store=${selectedStore.code})}">
+            Cancel
+        </a>
     </form>
 </main>
 

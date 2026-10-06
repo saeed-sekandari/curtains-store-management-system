@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Payment</title>
+</head>
+
+<body>
+
+<main>
+    <h1>Edit Payment</h1>
+
+    <p>
+        Order Number:
+        <strong th:text="${payment.order.orderNumber}">
+            1001
+        </strong>
+    </p>
+
+    <p>
+        Customer:
+        <strong th:text="${payment.order.customer.fullName}">
+            Customer Name
+        </strong>
+    </p>
+
+    <p>
+        Original recorded time:
+        <strong th:if="${payment.recordedAt != null}"
+                th:text="${#temporals.format(
+                    payment.recordedAt,
+                    'yyyy-MM-dd HH:mm')}">
+            2026-10-06 14:45
+        </strong>
+    </p>
+
+    <form th:action="@{/payments/{id}/edit(id=${payment.id})}"
+          method="post">
+
+        <!-- Protects the form from unwanted requests. -->
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}">
+
+        <div>
+            <label for="amount">Amount:</label>
+            <input type="number"
+                   id="amount"
+                   name="amount"
+                   min="0.01"
+                   step="0.01"
+                   th:value="${payment.amount}"
+                   required>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="currency">Currency:</label>
+            <select id="currency"
+                    name="currency"
+                    required>
+
+                <option value="AFN"
+                        th:selected="${payment.currency == 'AFN'}">
+                    AFN
+                </option>
+
+                <option value="USD"
+                        th:selected="${payment.currency == 'USD'}">
+                    USD
+                </option>
+            </select>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="paymentType">Payment Type:</label>
+            <select id="paymentType"
+                    name="paymentType"
+                    required>
+
+                <option value="DEPOSIT"
+                        th:selected="${payment.paymentType == 'DEPOSIT'}">
+                    Deposit
+                </option>
+
+                <option value="BALANCE"
+                        th:selected="${payment.paymentType == 'BALANCE'}">
+                    Final Balance
+                </option>
+
+                <option value="OTHER"
+                        th:selected="${payment.paymentType == 'OTHER'}">
+                    Other Payment
+                </option>
+            </select>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="paymentMethod">Payment Method:</label>
+            <select id="paymentMethod"
+                    name="paymentMethod"
+                    required>
+
+                <option value="CASH"
+                        th:selected="${payment.paymentMethod == 'CASH'}">
+                    Cash
+                </option>
+
+                <option value="BANK_TRANSFER"
+                        th:selected="${payment.paymentMethod == 'BANK_TRANSFER'}">
+                    Bank Transfer
+                </option>
+
+                <option value="OTHER"
+                        th:selected="${payment.paymentMethod == 'OTHER'}">
+                    Other
+                </option>
+            </select>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="notes">Notes:</label>
+            <textarea id="notes"
+                      name="notes"
+                      rows="4"
+                      cols="40"
+                      th:text="${payment.notes}"></textarea>
+        </div>
+
+        <br>
+
+        <button type="submit">Save Changes</button>
+
+        <a th:href="@{/orders/{id}/payments(
+                    id=${payment.order.id})}">
+            Cancel
+        </a>
+    </form>
+</main>
+
+</body>
+</html>

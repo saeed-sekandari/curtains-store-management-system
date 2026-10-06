@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Order Payments</title>
+</head>
+
+<body>
+
+<main>
+    <h1>Order Payments</h1>
+
+    <p>
+        Order Number:
+        <strong th:text="${order.orderNumber}">
+            1001
+        </strong>
+    </p>
+
+    <p>
+        Customer:
+        <strong th:text="${order.customer.fullName}">
+            Customer Name
+        </strong>
+    </p>
+
+    <p>
+        Order Total:
+        <strong>
+            <span th:text="${order.totalAmount}">0</span> AFN
+        </strong>
+    </p>
+
+    <p>
+        <a th:href="@{/orders/{id}/payments/new(id=${order.id})}">
+            Record Payment
+        </a>
+        |
+        <a th:href="@{/orders(store=${order.store.code})}">
+            Back to Orders
+        </a>
+    </p>
+
+    <h2>Payment History</h2>
+
+    <table border="1" cellpadding="8">
+        <thead>
+        <tr>
+            <th>Date and Time</th>
+            <th>Amount</th>
+            <th>Currency</th>
+            <th>Payment Type</th>
+            <th>Payment Method</th>
+            <th>Status</th>
+            <th>Notes</th>
+            <th>Action</th>
+        </tr>
+        </thead>
+
+        <tbody>
+        <tr th:each="payment : ${payments}">
+            <td>
+                <span th:if="${payment.recordedAt != null}"
+                      th:text="${#temporals.format(
+                          payment.recordedAt,
+                          'yyyy-MM-dd HH:mm')}">
+                    2026-10-06 14:45
+                </span>
+
+                <span th:unless="${payment.recordedAt != null}"
+                      th:text="${payment.paymentDate}">
+                    2026-10-06
+                </span>
+            </td>
+
+            <td th:text="${payment.amount}">
+                0
+            </td>
+
+            <td th:text="${payment.currency}">
+                AFN
+            </td>
+
+            <td th:text="${payment.paymentType}">
+                DEPOSIT
+            </td>
+
+            <td th:text="${payment.paymentMethod}">
+                CASH
+            </td>
+
+            <td th:text="${payment.status != null
+                    ? payment.status
+                    : 'ACTIVE'}">
+                ACTIVE
+            </td>
+
+            <td th:text="${payment.notes}">
+                None
+            </td>
+
+            <td>
+                <!-- Active payments can still be edited. -->
+                <a th:if="${payment.status == null
+                        or payment.status != 'VOIDED'}"
+                   th:href="@{/payments/{id}/edit(id=${payment.id})}">
+                    Edit
+                </a>
+
+                <!-- Only managers can void active payments. -->
+                <div th:if="${currentRole == 'MANAGER'
+                        and (payment.status == null
+                        or payment.status != 'VOIDED')}">
+
+                    <form th:action="@{/payments/{id}/void(id=${payment.id})}"
+                          method="post">
+
+                        <input type="hidden"
+                               th:name="${_csrf.parameterName}"
+                               th:value="${_csrf.token}">
+
+                        <input type="text"
+                               name="voidReason"
+                               placeholder="Reason for voiding"
+                               required>
+
+                        <button type="submit">
+                            Void Payment
+                        </button>
+                    </form>
+                </div>
+
+                <span th:if="${payment.status == 'VOIDED'}">
+                    No actions
+                </span>
+            </td>
+        </tr>
+
+        <tr th:if="${#lists.isEmpty(payments)}">
+            <td colspan="8">
+                No payments have been recorded for this order.
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</main>
+
+</body>
+</html>

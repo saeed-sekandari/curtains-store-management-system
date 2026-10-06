@@ -5,17 +5,19 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
 
-    // Loads the customer together with each order.
-    // This allows the orders page to display the customer's name safely.
-    @EntityGraph(attributePaths = "customer")
+    // Loads the customer when showing store orders.
+    @EntityGraph(attributePaths = {"customer", "store"})
     List<Order> findByStoreId(Long storeId);
 
-    // Finds one order using its order number.
+    // Loads the customer and store when opening payment pages.
+    @EntityGraph(attributePaths = {"customer", "store"})
+    Optional<Order> findById(Long id);
+
     Order findByOrderNumber(String orderNumber);
 
-    // Returns all orders for one customer.
     List<Order> findByCustomerId(Long customerId);
 }
