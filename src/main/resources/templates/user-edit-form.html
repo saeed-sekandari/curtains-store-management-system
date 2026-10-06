@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Edit User Account</title>
+</head>
+
+<body>
+
+<main>
+    <h1>Edit User Account</h1>
+
+    <p>
+        Update the employee's information, role, or assigned store.
+    </p>
+
+    <form th:action="@{/users/{id}/edit(id=${user.id})}"
+          method="post">
+
+        <!-- Protects the form from unwanted requests. -->
+        <input type="hidden"
+               th:name="${_csrf.parameterName}"
+               th:value="${_csrf.token}">
+
+        <div>
+            <label for="username">Username:</label>
+
+            <!-- Usernames are not changed after account creation. -->
+            <input type="text"
+                   id="username"
+                   th:value="${user.username}"
+                   readonly>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="fullName">Full Name:</label>
+            <input type="text"
+                   id="fullName"
+                   name="fullName"
+                   th:value="${user.fullName}"
+                   required>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="role">Role:</label>
+
+            <select id="role" name="role" required>
+                <option value="EMPLOYEE"
+                        th:selected="${user.role.name() == 'EMPLOYEE'}">
+                    Employee
+                </option>
+
+                <option value="TAILOR"
+                        th:selected="${user.role.name() == 'TAILOR'}">
+                    Tailor
+                </option>
+
+                <option value="ACCOUNTANT"
+                        th:selected="${user.role.name() == 'ACCOUNTANT'}">
+                    Accountant
+                </option>
+            </select>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="storeCode">Assigned Store:</label>
+
+            <select id="storeCode"
+                    name="storeCode"
+                    required>
+
+                <option th:each="store : ${stores}"
+                        th:value="${store.code}"
+                        th:text="${store.name}"
+                        th:selected="${user.assignedStore != null
+                            and user.assignedStore.code == store.code}">
+                    Store name
+                </option>
+            </select>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="password">
+                New Password:
+            </label>
+
+            <input type="password"
+                   id="password"
+                   name="password">
+
+            <small>
+                Leave blank to keep the current password.
+            </small>
+        </div>
+
+        <br>
+
+        <button type="submit">Save Changes</button>
+        <a href="/users">Cancel</a>
+    </form>
+</main>
+
+</body>
+</html>

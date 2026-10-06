@@ -1,42 +1,53 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <head>
     <meta charset="UTF-8">
     <title>Create User Account</title>
 </head>
+
 <body>
 
 <main>
     <h1>Create User Account</h1>
 
     <p>
-        Use this form to create an account for an employee, tailor, or accountant.
+        Use this form to create an account and assign the person to a store.
     </p>
 
     <form action="/users" method="post">
 
-        <!-- Spring Security requires this hidden token for form submissions. -->
+        <!-- Protects the form from unwanted requests. -->
         <input type="hidden"
                th:name="${_csrf.parameterName}"
                th:value="${_csrf.token}">
 
         <div>
             <label for="username">Username:</label>
-            <input type="text" id="username" name="username" required>
+            <input type="text"
+                   id="username"
+                   name="username"
+                   required>
         </div>
 
         <br>
 
         <div>
             <label for="fullName">Full Name:</label>
-            <input type="text" id="fullName" name="fullName" required>
+            <input type="text"
+                   id="fullName"
+                   name="fullName"
+                   required>
         </div>
 
         <br>
 
         <div>
             <label for="password">Temporary Password:</label>
-            <input type="password" id="password" name="password" required>
+            <input type="password"
+                   id="password"
+                   name="password"
+                   required>
         </div>
 
         <br>
@@ -47,6 +58,22 @@
                 <option value="EMPLOYEE">Employee</option>
                 <option value="TAILOR">Tailor</option>
                 <option value="ACCOUNTANT">Accountant</option>
+            </select>
+        </div>
+
+        <br>
+
+        <div>
+            <label for="storeCode">Assigned Store:</label>
+
+            <select id="storeCode" name="storeCode" required>
+                <option value="">Select a store</option>
+
+                <option th:each="store : ${stores}"
+                        th:value="${store.code}"
+                        th:text="${store.name}">
+                    Store name
+                </option>
             </select>
         </div>
 
