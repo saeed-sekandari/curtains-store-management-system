@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orders</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 18px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+        }
+
+        main {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 24px;
+        }
+
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .page-header h2 {
+            color: #173b68;
+        }
+
+        .button {
+            background: #d69b2d;
+            color: white;
+            padding: 11px 16px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        .order-list {
+            margin-top: 25px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .order-row {
+            display: grid;
+            grid-template-columns: 1fr 1.3fr 1fr 1fr 1fr;
+            gap: 15px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .order-row.header {
+            background: #edf2f7;
+            font-weight: bold;
+            color: #173b68;
+        }
+
+        .empty-message {
+            background: white;
+            padding: 25px;
+            margin-top: 25px;
+            border-radius: 12px;
+            color: #667085;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Shows which store's orders are being viewed. -->
+<header class="topbar">
+    <h1 th:text="${selectedStore.name}">
+        Store Orders
+    </h1>
+</header>
+
+<main>
+    <section class="page-header">
+        <h2>Orders</h2>
+
+        <!-- Opens the form for creating an order for this store. -->
+        <a class="button"
+           th:href="@{/orders/new(store=${selectedStore.code})}">
+            New Order
+        </a>
+    </section>
+
+    <!-- Displays the order list when orders exist. -->
+    <section class="order-list" th:if="${!orders.isEmpty()}">
+        <div class="order-row header">
+            <div>Order Number</div>
+            <div>Customer</div>
+            <div>Total</div>
+            <div>Deposit</div>
+            <div>Status</div>
+        </div>
+
+        <div class="order-row" th:each="order : ${orders}">
+            <div th:text="${order.orderNumber}">1001</div>
+            <div th:text="${order.customer.fullName}">Customer name</div>
+            <div th:text="${order.totalAmount + ' AFN'}">0 AFN</div>
+            <div th:text="${order.depositAmount + ' AFN'}">0 AFN</div>
+            <div th:text="${order.status}">NEW</div>
+        </div>
+    </section>
+
+    <!-- Appears when this store has no orders yet. -->
+    <p class="empty-message" th:if="${orders.isEmpty()}">
+        No orders have been added to this store yet.
+    </p>
+</main>
+
+</body>
+</html>

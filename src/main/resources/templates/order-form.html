@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Order</title>
+
+    <style>
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 18px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+        }
+
+        .form-card {
+            max-width: 600px;
+            margin: 45px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
+        }
+
+        h2 {
+            color: #173b68;
+            margin-top: 0;
+        }
+
+        .store-name {
+            color: #667085;
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-top: 18px;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        button {
+            margin-top: 25px;
+            padding: 12px 20px;
+            background: #d69b2d;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #b9801e;
+        }
+
+        .notice {
+            color: #667085;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<!-- Shows the store where this order will be saved. -->
+<header class="topbar">
+    <h1>Order Management</h1>
+</header>
+
+<main class="form-card">
+    <h2>Create New Order</h2>
+
+    <p class="store-name">
+        Store:
+        <strong th:text="${selectedStore.name}">
+            Selected store
+        </strong>
+    </p>
+
+    <!-- Shows a helpful message if the store has no customers yet. -->
+    <p class="notice" th:if="${customers.isEmpty()}">
+        Add a customer before creating an order.
+    </p>
+
+    <!-- Sends the order information to the controller. -->
+    <form th:action="@{/orders}" th:object="${order}" method="post">
+
+        <!-- Identifies the store that owns this order. -->
+        <input type="hidden"
+               name="storeCode"
+               th:value="${selectedStore.code}">
+
+        <label for="orderNumber">Order Number</label>
+        <input id="orderNumber"
+               type="text"
+               th:field="*{orderNumber}"
+               placeholder="Example: 1001"
+               required>
+
+        <label for="customerId">Customer</label>
+        <select id="customerId"
+                name="customerId"
+                required>
+            <option value="">Choose a customer</option>
+
+            <option th:each="customer : ${customers}"
+                    th:value="${customer.id}"
+                    th:text="${customer.fullName}">
+                Customer name
+            </option>
+        </select>
+
+        <label for="totalAmount">Total Amount (AFN)</label>
+        <input id="totalAmount"
+               type="number"
+               min="0"
+               step="1"
+               th:field="*{totalAmount}"
+               required>
+
+        <label for="depositAmount">Deposit Amount (AFN)</label>
+        <input id="depositAmount"
+               type="number"
+               min="0"
+               step="1"
+               th:field="*{depositAmount}"
+               required>
+
+        <button type="submit">
+            Save Order
+        </button>
+    </form>
+</main>
+
+</body>
+</html>
