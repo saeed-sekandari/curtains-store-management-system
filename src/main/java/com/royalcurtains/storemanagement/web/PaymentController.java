@@ -41,7 +41,7 @@ public class PaymentController {
         this.storeAccessService = storeAccessService;
     }
 
-    // Shows payment history for an order.
+    // Shows payment history and the order balance.
     @Transactional
     @GetMapping("/orders/{orderId}/payments")
     public String payments(
@@ -57,8 +57,19 @@ public class PaymentController {
 
         User currentUser = findCurrentUser(principal);
 
+        BigDecimal totalPaid =
+                paymentRepository.sumActiveAfnPaymentsByOrderId(orderId);
+
+        BigDecimal remainingBalance =
+                order.getTotalAmount()
+                        .subtract(totalPaid)
+                        .max(BigDecimal.ZERO);
+
         model.addAttribute("order", order);
         model.addAttribute("currentRole", currentUser.getRole().name());
+        model.addAttribute("currentUsername", currentUser.getUsername());
+        model.addAttribute("totalPaid", totalPaid);
+        model.addAttribute("remainingBalance", remainingBalance);
         model.addAttribute(
                 "payments",
                 paymentRepository.findByOrderIdOrderByPaymentDateDesc(orderId));

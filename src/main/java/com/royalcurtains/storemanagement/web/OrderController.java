@@ -23,6 +23,9 @@ import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 public class OrderController {
@@ -62,17 +65,37 @@ public class OrderController {
                 principal,
                 selectedStore.getCode());
 
-        User currentUser = userRepository.findByUsername(principal.getName())
+        User currentUser = userRepository
+                .findByUsername(principal.getName())
                 .orElseThrow(() ->
                         new IllegalArgumentException("User not found"));
+
+        List<Order> orders =
+                orderRepository.findByStoreId(selectedStore.getId());
+
+        Map<Long, BigDecimal> paidAmounts = new HashMap<>();
+        Map<Long, BigDecimal> remainingAmounts = new HashMap<>();
+
+        for (Order order : orders) {
+            BigDecimal paid =
+                    paymentRepository
+                            .sumActiveAfnPaymentsByOrderId(order.getId());
+
+            BigDecimal remaining =
+                    order.getTotalAmount()
+                            .subtract(paid)
+                            .max(BigDecimal.ZERO);
+
+            paidAmounts.put(order.getId(), paid);
+            remainingAmounts.put(order.getId(), remaining);
+        }
 
         model.addAttribute("store", selectedStore);
         model.addAttribute("selectedStore", selectedStore);
         model.addAttribute("currentRole", currentUser.getRole().name());
-
-        model.addAttribute(
-                "orders",
-                orderRepository.findByStoreId(selectedStore.getId()));
+        model.addAttribute("orders", orders);
+        model.addAttribute("paidAmounts", paidAmounts);
+        model.addAttribute("remainingAmounts", remainingAmounts);
 
         return "orders";
     }
@@ -109,11 +132,13 @@ public class OrderController {
             @RequestParam(required = false) String newCustomerName,
             @RequestParam(required = false) String newCustomerPhone,
             @RequestParam(required = false) String newCustomerAddress,
-            @RequestParam(required = false) BigDecimal initialPaymentAmount,
+            @RequestParam(required = false)
+            BigDecimal initialPaymentAmount,
             @RequestParam(
                     required = false,
                     defaultValue = "CASH"
-            ) String initialPaymentMethod,
+            )
+            String initialPaymentMethod,
             @ModelAttribute Order order,
             Principal principal) {
 

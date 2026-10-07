@@ -33,12 +33,33 @@
     </p>
 
     <p>
+        Total Paid:
+        <strong>
+            <span th:text="${totalPaid}">0</span> AFN
+        </strong>
+    </p>
+
+    <p>
+        Remaining Balance:
+        <strong>
+            <span th:text="${remainingBalance}">0</span> AFN
+        </strong>
+    </p>
+
+    <p>
         <a th:href="@{/orders/{id}/payments/new(id=${order.id})}">
             Record Payment
         </a>
         |
-        <a th:href="@{/orders(store=${order.store.code})}">
-            Back to Orders
+
+        <a th:if="${currentRole == 'MANAGER'}"
+           th:href="@{/orders(store=${order.store.code})}">
+            Back to Manager Orders
+        </a>
+
+        <a th:if="${currentRole != 'MANAGER'}"
+           th:href="@{/orders(store=${order.store.code})}">
+            Back to Employee Orders
         </a>
     </p>
 
@@ -101,9 +122,13 @@
             </td>
 
             <td>
-                <!-- Active payments can still be edited. -->
-                <a th:if="${payment.status == null
-                        or payment.status != 'VOIDED'}"
+                <!-- Managers can edit any active payment.
+                     Employees can edit only their own payment. -->
+                <a th:if="${(currentRole == 'MANAGER'
+                        or (payment.recordedBy != null
+                        and payment.recordedBy.username == currentUsername))
+                        and (payment.status == null
+                        or payment.status != 'VOIDED')}"
                    th:href="@{/payments/{id}/edit(id=${payment.id})}">
                     Edit
                 </a>
@@ -131,8 +156,16 @@
                     </form>
                 </div>
 
+                <!-- Shows when the current employee cannot edit this payment. -->
+                <span th:if="${currentRole != 'MANAGER'
+                        and (payment.recordedBy == null
+                        or payment.recordedBy.username != currentUsername)
+                        and payment.status != 'VOIDED'}">
+                    N/A
+                </span>
+
                 <span th:if="${payment.status == 'VOIDED'}">
-                    No actions
+                    N/A
                 </span>
             </td>
         </tr>

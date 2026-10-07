@@ -21,6 +21,7 @@
             New Order
         </a>
         |
+
         <a th:if="${currentRole == 'MANAGER'}"
            href="/dashboard">
             Back to Manager Dashboard
@@ -38,7 +39,8 @@
             <th>Order Number</th>
             <th>Customer</th>
             <th>Total</th>
-            <th>Deposit</th>
+            <th>Paid</th>
+            <th>Remaining Balance</th>
             <th>Status</th>
             <th>Payments</th>
         </tr>
@@ -62,7 +64,14 @@
             </td>
 
             <td>
-                <span th:text="${order.depositAmount}">
+                <span th:text="${paidAmounts[order.id]}">
+                    0
+                </span>
+                AFN
+            </td>
+
+            <td>
+                <span th:text="${remainingAmounts[order.id]}">
                     0
                 </span>
                 AFN
@@ -86,7 +95,7 @@
         </tr>
 
         <tr th:if="${#lists.isEmpty(orders)}">
-            <td colspan="6">
+            <td colspan="7">
                 No orders found for this store.
             </td>
         </tr>
