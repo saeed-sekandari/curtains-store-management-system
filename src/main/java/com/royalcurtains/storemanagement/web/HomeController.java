@@ -1,5 +1,6 @@
 package com.royalcurtains.storemanagement.web;
 
+import com.royalcurtains.storemanagement.model.Customer;
 import com.royalcurtains.storemanagement.model.Order;
 import com.royalcurtains.storemanagement.model.Store;
 import com.royalcurtains.storemanagement.repository.CustomerRepository;
@@ -38,7 +39,10 @@ public class HomeController {
                 .map(Store::getName)
                 .toArray(String[]::new);
 
-        model.addAttribute("systemName", "Curtains Store Management");
+        model.addAttribute(
+                "systemName",
+                "Curtains Store Management");
+
         model.addAttribute("stores", stores);
 
         return "home";
@@ -50,18 +54,18 @@ public class HomeController {
         return "login";
     }
 
-    // Loads dashboard numbers for all stores or one selected store.
+    // Shows dashboard totals for active orders only.
     @GetMapping("/dashboard")
     public String dashboard(
             @RequestParam(defaultValue = "all") String store,
             Model model,
             Principal principal) {
 
-        List<?> customers;
+        List<Customer> customers;
         List<Order> orders;
 
         String selectedStoreName;
-        String selectedStoreCode = store.toLowerCase();
+        String selectedStoreCode;
 
         if (store.equalsIgnoreCase("all")) {
             selectedStoreName = "All Stores";
@@ -73,15 +77,27 @@ public class HomeController {
             Store selectedStore = storeRepository
                     .findByCode(store.toLowerCase())
                     .orElseThrow(() ->
-                            new IllegalArgumentException("Store not found"));
+                            new IllegalArgumentException(
+                                    "Store not found"));
 
             selectedStoreName = selectedStore.getName();
+            selectedStoreCode = selectedStore.getCode();
 
-            customers = customerRepository.findByStoreId(selectedStore.getId());
-            orders = orderRepository.findByStoreId(selectedStore.getId());
+            customers = customerRepository
+                    .findByStoreId(selectedStore.getId());
+
+            orders = orderRepository
+                    .findByStoreId(selectedStore.getId());
         }
 
-        BigDecimal totalSales = orders.stream()
+        // Cancelled orders remain in the database for history,
+        // but they must not count as active sales.
+        List<Order> activeOrders = orders.stream()
+                .filter(order ->
+                        !"CANCELLED".equalsIgnoreCase(order.getStatus()))
+                .toList();
+
+        BigDecimal totalSales = activeOrders.stream()
                 .map(Order::getTotalAmount)
                 .filter(amount -> amount != null)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -90,7 +106,7 @@ public class HomeController {
         model.addAttribute("selectedStore", selectedStoreName);
         model.addAttribute("selectedStoreCode", selectedStoreCode);
 
-        model.addAttribute("orderCount", orders.size());
+        model.addAttribute("orderCount", activeOrders.size());
         model.addAttribute("customerCount", customers.size());
         model.addAttribute("totalSales", totalSales);
 

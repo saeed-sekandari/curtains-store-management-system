@@ -3,6 +3,7 @@ package com.royalcurtains.storemanagement.web;
 import com.royalcurtains.storemanagement.model.Customer;
 import com.royalcurtains.storemanagement.model.Order;
 import com.royalcurtains.storemanagement.model.Payment;
+import com.royalcurtains.storemanagement.model.Role;
 import com.royalcurtains.storemanagement.model.Store;
 import com.royalcurtains.storemanagement.model.User;
 import com.royalcurtains.storemanagement.repository.CustomerRepository;
@@ -12,10 +13,12 @@ import com.royalcurtains.storemanagement.repository.StoreRepository;
 import com.royalcurtains.storemanagement.repository.UserRepository;
 import com.royalcurtains.storemanagement.security.StoreAccessService;
 import jakarta.transaction.Transactional;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -210,6 +213,49 @@ public class OrderController {
 
         return "redirect:/orders?store="
                 + selectedStore.getCode();
+    }
+
+    // Only the manager can cancel an order.
+    @Transactional
+    @PostMapping("/orders/{orderId}/cancel")
+    public String cancelOrder(
+            @PathVariable Long orderId,
+            @RequestParam String cancellationReason,
+            Principal principal) {
+
+        Order order = findOrder(orderId);
+
+        User currentUser = userRepository
+                .findByUsername(principal.getName())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found"));
+
+        storeAccessService.checkStoreAccess(
+                principal,
+                order.getStore().getCode());
+
+        if (currentUser.getRole() != Role.MANAGER) {
+            throw new AccessDeniedException(
+                    "Only the manager can cancel orders");
+        }
+
+        if (!"CANCELLED".equals(order.getStatus())) {
+            order.setStatus("CANCELLED");
+            order.setCancelledBy(currentUser);
+            order.setCancelledAt(LocalDateTime.now());
+            order.setCancellationReason(cancellationReason);
+
+            orderRepository.save(order);
+        }
+
+        return "redirect:/orders?store="
+                + order.getStore().getCode();
+    }
+
+    private Order findOrder(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Order not found"));
     }
 
     private Store findStore(String storeCode) {

@@ -1,77 +1,59 @@
 package com.royalcurtains.storemanagement.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "customer_orders")
 public class Order {
 
-    // Database ID for this order.
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Every order belongs to one store.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    // The customer who placed the order.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "customer_id", nullable = false)
     private Customer customer;
 
-    // Human-readable order number, such as 1001.
     @Column(nullable = false, unique = true)
     private String orderNumber;
 
-    // Total order price in whole Afghanis.
-    @Column(nullable = false, precision = 12, scale = 0)
-    private BigDecimal totalAmount = BigDecimal.ZERO;
+    @Column(nullable = false, precision = 14, scale = 2)
+    private BigDecimal totalAmount;
 
-    // Amount paid by the customer at the beginning.
-    @Column(nullable = false, precision = 12, scale = 0)
-    private BigDecimal depositAmount = BigDecimal.ZERO;
+    // Kept for compatibility with existing records.
+    // New payment totals come from the payments table.
+    @Column(precision = 14, scale = 2)
+    private BigDecimal depositAmount;
 
-    // Current stage of the order.
-    private String status = "NEW";
+    @Column(nullable = false, length = 30)
+    private String status;
 
-    // Date when the order was created.
     @Column(nullable = false)
-    private LocalDate createdDate = LocalDate.now();
+    private LocalDate createdDate;
+
+    // The manager who cancelled the order.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "cancelled_by_user_id")
+    private User cancelledBy;
+
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "cancellation_reason", length = 500)
+    private String cancellationReason;
 
     public Order() {
-        // JPA needs an empty constructor.
-    }
-
-    public Order(
-            Store store,
-            Customer customer,
-            String orderNumber,
-            BigDecimal totalAmount,
-            BigDecimal depositAmount) {
-
-        this.store = store;
-        this.customer = customer;
-        this.orderNumber = orderNumber;
-        this.totalAmount = totalAmount;
-        this.depositAmount = depositAmount;
-    }
-
-    // Calculates what the customer still needs to pay.
-    public BigDecimal getRemainingAmount() {
-        return totalAmount.subtract(depositAmount);
+        this.status = "NEW";
+        this.createdDate = LocalDate.now();
+        this.depositAmount = BigDecimal.ZERO;
     }
 
     public Long getId() {
@@ -82,63 +64,91 @@ public class Order {
         return store;
     }
 
-    public Customer getCustomer() {
-        return customer;
-    }
-
-    public String getOrderNumber() {
-        return orderNumber;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    public BigDecimal getDepositAmount() {
-        return depositAmount;
-    }
-
-    public BigDecimal getRemainingAmountValue() {
-        return getRemainingAmount();
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public LocalDate getCreatedDate() {
-        return createdDate;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
     public void setStore(Store store) {
         this.store = store;
+    }
+
+    public Customer getCustomer() {
+        return customer;
     }
 
     public void setCustomer(Customer customer) {
         this.customer = customer;
     }
 
+    public String getOrderNumber() {
+        return orderNumber;
+    }
+
     public void setOrderNumber(String orderNumber) {
         this.orderNumber = orderNumber;
+    }
+
+    public BigDecimal getTotalAmount() {
+        return totalAmount;
     }
 
     public void setTotalAmount(BigDecimal totalAmount) {
         this.totalAmount = totalAmount;
     }
 
+    public BigDecimal getDepositAmount() {
+        return depositAmount;
+    }
+
     public void setDepositAmount(BigDecimal depositAmount) {
         this.depositAmount = depositAmount;
+    }
+
+    public String getStatus() {
+        return status;
     }
 
     public void setStatus(String status) {
         this.status = status;
     }
 
+    public LocalDate getCreatedDate() {
+        return createdDate;
+    }
+
     public void setCreatedDate(LocalDate createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public User getCancelledBy() {
+        return cancelledBy;
+    }
+
+    public void setCancelledBy(User cancelledBy) {
+        this.cancelledBy = cancelledBy;
+    }
+
+    public LocalDateTime getCancelledAt() {
+        return cancelledAt;
+    }
+
+    public void setCancelledAt(LocalDateTime cancelledAt) {
+        this.cancelledAt = cancelledAt;
+    }
+
+    public String getCancellationReason() {
+        return cancellationReason;
+    }
+
+    public void setCancellationReason(String cancellationReason) {
+        this.cancellationReason = cancellationReason;
+    }
+
+    public BigDecimal getRemainingAmount() {
+        BigDecimal total = totalAmount == null
+                ? BigDecimal.ZERO
+                : totalAmount;
+
+        BigDecimal deposit = depositAmount == null
+                ? BigDecimal.ZERO
+                : depositAmount;
+
+        return total.subtract(deposit);
     }
 }

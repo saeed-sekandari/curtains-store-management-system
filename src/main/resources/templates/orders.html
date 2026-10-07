@@ -43,6 +43,7 @@
             <th>Remaining Balance</th>
             <th>Status</th>
             <th>Payments</th>
+            <th>Order Action</th>
         </tr>
         </thead>
 
@@ -77,8 +78,17 @@
                 AFN
             </td>
 
-            <td th:text="${order.status}">
-                NEW
+            <td>
+                <strong th:text="${order.status}">
+                    NEW
+                </strong>
+
+                <br>
+
+                <small th:if="${order.cancellationReason != null}"
+                       th:text="${order.cancellationReason}">
+                    Cancellation reason
+                </small>
             </td>
 
             <td>
@@ -88,14 +98,43 @@
 
                 <br>
 
-                <a th:href="@{/orders/{id}/payments/new(id=${order.id})}">
+                <a th:if="${order.status != 'CANCELLED'}"
+                   th:href="@{/orders/{id}/payments/new(id=${order.id})}">
                     Record Payment
                 </a>
+            </td>
+
+            <td>
+                <!-- Only managers can cancel active orders. -->
+                <div th:if="${currentRole == 'MANAGER'
+                        and order.status != 'CANCELLED'}">
+
+                    <form th:action="@{/orders/{id}/cancel(id=${order.id})}"
+                          method="post">
+
+                        <input type="hidden"
+                               th:name="${_csrf.parameterName}"
+                               th:value="${_csrf.token}">
+
+                        <input type="text"
+                               name="cancellationReason"
+                               placeholder="Reason for cancellation"
+                               required>
+
+                        <button type="submit">
+                            Cancel Order
+                        </button>
+                    </form>
+                </div>
+
+                <span th:if="${order.status == 'CANCELLED'}">
+                    N/A
+                </span>
             </td>
         </tr>
 
         <tr th:if="${#lists.isEmpty(orders)}">
-            <td colspan="7">
+            <td colspan="8">
                 No orders found for this store.
             </td>
         </tr>
