@@ -25,11 +25,31 @@ public class RoleBasedLoginSuccessHandler
                 .anyMatch(authority ->
                         authority.getAuthority().equals("ROLE_MANAGER"));
 
+        boolean isTailor = authentication.getAuthorities()
+                .stream()
+                .anyMatch(authority ->
+                        authority.getAuthority().equals("ROLE_TAILOR"));
+
         if (isManager) {
-            getRedirectStrategy().sendRedirect(request, response, "/dashboard");
-        } else {
+            // Managers can view both stores and manage the system.
             getRedirectStrategy().sendRedirect(
-                    request, response, "/employee-dashboard");
+                    request,
+                    response,
+                    "/dashboard");
+
+        } else if (isTailor) {
+            // Tailors only see their assigned measurements and work.
+            getRedirectStrategy().sendRedirect(
+                    request,
+                    response,
+                    "/tailor-dashboard");
+
+        } else {
+            // Employees and accountants use the regular employee dashboard.
+            getRedirectStrategy().sendRedirect(
+                    request,
+                    response,
+                    "/employee-dashboard");
         }
     }
 }

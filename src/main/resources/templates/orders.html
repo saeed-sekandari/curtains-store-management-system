@@ -42,7 +42,7 @@
             <th>Paid</th>
             <th>Remaining Balance</th>
             <th>Status</th>
-            <th>Payments</th>
+            <th>Payments and Work</th>
             <th>Order Action</th>
         </tr>
         </thead>
@@ -101,6 +101,12 @@
                 <a th:if="${order.status != 'CANCELLED'}"
                    th:href="@{/orders/{id}/payments/new(id=${order.id})}">
                     Record Payment
+                </a>
+
+                <br>
+
+                <a th:href="@{/orders/{id}/items(id=${order.id})}">
+                    View Products and Measurements
                 </a>
             </td>
 

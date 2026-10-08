@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Products and Measurements</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 20px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 28px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #173b68;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin: 24px 0;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 11px 17px;
+            border-radius: 8px;
+            color: white;
+            background: #d69b2d;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background: #b9801e;
+        }
+
+        .back-button {
+            background: #64748b;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1050px;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th,
+        td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #eef3f8;
+            color: #173b68;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 5px 9px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            background: #e2e8f0;
+        }
+
+        .received {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .in-progress {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .not-started {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .overdue {
+            color: #b42318;
+            font-weight: bold;
+        }
+
+        .fabric {
+            margin-bottom: 8px;
+        }
+
+        .fabric:last-child {
+            margin-bottom: 0;
+        }
+
+        .empty-message {
+            padding: 20px 0;
+            color: #667085;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+    <section class="card">
+
+        <h2>Products and Measurements</h2>
+
+        <p>
+            Order number:
+            <strong th:text="${order.orderNumber}">1001</strong>
+        </p>
+
+        <p>
+            Customer:
+            <strong th:text="${order.customer.fullName}">
+                Customer name
+            </strong>
+        </p>
+
+        <div class="actions">
+
+            <a class="button"
+               th:if="${order.status != 'CANCELLED'}"
+               th:href="@{/orders/{orderId}/items/new(orderId=${order.id})}">
+                Add Product or Measurement
+            </a>
+
+            <a class="button back-button"
+               th:href="@{/orders(store=${order.store.code})}">
+                Back to Orders
+            </a>
+        </div>
+
+        <div th:if="${items == null or #lists.isEmpty(items)}"
+             class="empty-message">
+            No products or measurements have been added to this order yet.
+        </div>
+
+        <div th:if="${items != null and !#lists.isEmpty(items)}"
+             class="table-container">
+
+            <table>
+                <thead>
+                <tr>
+                    <th>Product</th>
+                    <th>Room</th>
+                    <th>Measurements</th>
+                    <th>Quantity</th>
+                    <th>Fabric and Color</th>
+                    <th>Tailor</th>
+                    <th>Received</th>
+                    <th>Complete By</th>
+                    <th>Status</th>
+                    <th>Completed</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="item : ${items}">
+
+                    <td th:text="${item.productType}">
+                        CURTAIN
+                    </td>
+
+                    <td th:text="${item.roomName != null and !item.roomName.isBlank()
+                                  ? item.roomName
+                                  : 'Not specified'}">
+                        Living room
+                    </td>
+
+                    <td>
+                        <span th:if="${item.width != null}"
+                              th:text="${item.width + ' cm wide'}">
+                            280 cm wide
+                        </span>
+
+                        <br th:if="${item.width != null and item.height != null}">
+
+                        <span th:if="${item.height != null}"
+                              th:text="${item.height + ' cm high'}">
+                            250 cm high
+                        </span>
+
+                        <span th:if="${item.width == null and item.height == null}">
+                            Not specified
+                        </span>
+                    </td>
+
+                    <td th:text="${item.quantity}">
+                        1
+                    </td>
+
+                    <td>
+                        <div th:if="${item.fabrics != null and !#lists.isEmpty(item.fabrics)}"
+                             th:each="fabric : ${item.fabrics}"
+                             class="fabric">
+
+                            <strong th:text="${fabric.fabricName}">
+                                Velvet
+                            </strong>
+
+                            <span th:if="${fabric.color != null and !fabric.color.isBlank()}"
+                                  th:text="' - ' + ${fabric.color}">
+                                - Dark blue
+                            </span>
+
+                            <div th:if="${fabric.notes != null and !fabric.notes.isBlank()}"
+                                 th:text="${fabric.notes}">
+                                Fabric notes
+                            </div>
+                        </div>
+
+                        <span th:if="${item.fabrics == null or #lists.isEmpty(item.fabrics)}">
+                            Not specified
+                        </span>
+                    </td>
+
+                    <td>
+                        <span th:if="${item.assignedTailor != null}"
+                              th:text="${item.assignedTailor.fullName}">
+                            Tailor name
+                        </span>
+
+                        <span th:if="${item.assignedTailor == null}">
+                            Not assigned
+                        </span>
+                    </td>
+
+                    <td>
+                        <span th:if="${item.receivedAt != null}"
+                              th:text="${#temporals.format(item.receivedAt, 'yyyy-MM-dd HH:mm')}">
+                            2026-10-06 15:30
+                        </span>
+
+                        <span th:if="${item.receivedAt == null}">
+                            Not received
+                        </span>
+                    </td>
+
+                    <td>
+                        <span th:if="${item.requiredCompletionDate != null}"
+                              th:text="${#temporals.format(item.requiredCompletionDate, 'yyyy-MM-dd')}">
+                            2026-10-12
+                        </span>
+
+                        <span th:if="${item.requiredCompletionDate == null}">
+                            Not set
+                        </span>
+                    </td>
+
+                    <td>
+                        <span class="status"
+                              th:classappend="${item.workStatus == 'RECEIVED'} ? ' received' :
+                                              (${item.workStatus == 'IN_PROGRESS'} ? ' in-progress' :
+                                              (${item.workStatus == 'COMPLETED'} ? ' completed' : ' not-started'))"
+                              th:text="${item.workStatus}">
+                            RECEIVED
+                        </span>
+                    </td>
+
+                    <td>
+                        <span th:if="${item.completedAt != null}"
+                              th:text="${#temporals.format(item.completedAt, 'yyyy-MM-dd HH:mm')}">
+                            2026-10-10 16:00
+                        </span>
+
+                        <span th:if="${item.completedAt == null}">
+                            Not completed
+                        </span>
+                    </td>
+
+                    <td>
+                        <span th:if="${item.design != null and !item.design.isBlank()}"
+                              th:text="${item.design}">
+                            Two-panel curtain
+                        </span>
+
+                        <span th:if="${item.specialNotes != null and !item.specialNotes.isBlank()}"
+                              th:text="${item.specialNotes}">
+                            Special instructions
+                        </span>
+
+                        <span th:if="${(item.design == null or item.design.isBlank())
+                                      and (item.specialNotes == null or item.specialNotes.isBlank())}">
+                            None
+                        </span>
+                    </td>
+
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+    </section>
+</main>
+
+</body>
+</html>

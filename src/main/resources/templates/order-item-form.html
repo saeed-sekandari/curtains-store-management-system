@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Add Product or Measurement</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 20px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        main {
+            max-width: 760px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 28px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #173b68;
+        }
+
+        h3 {
+            margin-top: 30px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            color: #173b68;
+        }
+
+        label {
+            display: block;
+            margin-top: 16px;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 90px;
+            resize: vertical;
+        }
+
+        .help-text {
+            color: #667085;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+
+        .required {
+            color: #b42318;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        button,
+        .cancel-button {
+            flex: 1;
+            padding: 12px;
+            border: 0;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button {
+            background: #d69b2d;
+            color: white;
+        }
+
+        button:hover {
+            background: #b9801e;
+        }
+
+        .cancel-button {
+            background: #e2e8f0;
+            color: #172033;
+        }
+
+        .cancel-button:hover {
+            background: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+    <section class="card">
+
+        <h2>Add Product or Measurement</h2>
+
+        <p>
+            Order number:
+            <strong th:text="${order.orderNumber}">1001</strong>
+        </p>
+
+        <p>
+            Customer:
+            <strong th:text="${order.customer.fullName}">
+                Customer name
+            </strong>
+        </p>
+
+        <form th:action="@{/orders/{orderId}/items(orderId=${order.id})}"
+              method="post">
+
+            <!-- Required by Spring Security for form submissions. -->
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <h3>Product Information</h3>
+
+            <label for="productType">
+                Product Type <span class="required">*</span>
+            </label>
+
+            <select id="productType"
+                    name="productType"
+                    required>
+
+                <option value="">Select product type</option>
+                <option value="CURTAIN">Curtain</option>
+                <option value="MATTRESS">Mattress</option>
+                <option value="PILLOW">Pillow</option>
+            </select>
+
+            <label for="roomName">Room Name</label>
+
+            <input id="roomName"
+                   name="roomName"
+                   type="text"
+                   placeholder="Example: Living room">
+
+            <label for="quantity">
+                Quantity <span class="required">*</span>
+            </label>
+
+            <input id="quantity"
+                   name="quantity"
+                   type="number"
+                   min="1"
+                   value="1"
+                   required>
+
+            <h3>Measurements</h3>
+
+            <p class="help-text">
+                Enter measurements only in centimeters. Example: 280.
+            </p>
+
+            <label for="width">Width (cm)</label>
+
+            <input id="width"
+                   name="width"
+                   type="number"
+                   min="0"
+                   step="0.01"
+                   placeholder="Example: 280">
+
+            <label for="height">Height (cm)</label>
+
+            <input id="height"
+                   name="height"
+                   type="number"
+                   min="0"
+                   step="0.01"
+                   placeholder="Example: 250">
+
+            <h3>Fabric Information</h3>
+
+            <label for="fabricName">Fabric Name</label>
+
+            <input id="fabricName"
+                   name="fabricName"
+                   type="text"
+                   placeholder="Example: Velvet">
+
+            <label for="color">Color</label>
+
+            <input id="color"
+                   name="color"
+                   type="text"
+                   placeholder="Example: Dark blue">
+
+            <label for="fabricNotes">Fabric Notes</label>
+
+            <textarea id="fabricNotes"
+                      name="fabricNotes"
+                      placeholder="Add any important fabric information"></textarea>
+
+            <h3>Tailor Assignment</h3>
+
+            <label for="tailorId">Assigned Tailor</label>
+
+            <select id="tailorId"
+                    name="tailorId">
+
+                <option value="">Not assigned yet</option>
+
+                <option th:each="tailor : ${tailors}"
+                        th:value="${tailor.id}"
+                        th:text="${tailor.fullName}">
+                    Tailor name
+                </option>
+            </select>
+
+            <label for="requiredCompletionDate">
+                Required Completion Date
+                <span class="required">*</span>
+            </label>
+
+            <input id="requiredCompletionDate"
+                   name="requiredCompletionDate"
+                   type="date"
+                   required>
+
+            <p class="help-text">
+                The tailor must complete this work by this date.
+            </p>
+
+            <label for="design">Design</label>
+
+            <input id="design"
+                   name="design"
+                   type="text"
+                   placeholder="Example: Two-panel curtain">
+
+            <label for="specialNotes">Special Notes</label>
+
+            <textarea id="specialNotes"
+                      name="specialNotes"
+                      placeholder="Add special instructions for the tailor"></textarea>
+
+            <div class="button-row">
+                <button type="submit">
+                    Save Product
+                </button>
+
+                <a class="cancel-button"
+                   th:href="@{/orders/{orderId}/items(orderId=${order.id})}">
+                    Cancel
+                </a>
+            </div>
+
+        </form>
+    </section>
+</main>
+
+</body>
+</html>

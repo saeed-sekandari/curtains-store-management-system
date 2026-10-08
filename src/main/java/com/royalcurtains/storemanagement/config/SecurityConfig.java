@@ -18,6 +18,7 @@ public class SecurityConfig {
     public SecurityConfig(
             DatabaseUserDetailsService userDetailsService,
             RoleBasedLoginSuccessHandler loginSuccessHandler) {
+
         this.userDetailsService = userDetailsService;
         this.loginSuccessHandler = loginSuccessHandler;
     }
@@ -28,14 +29,15 @@ public class SecurityConfig {
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http) throws Exception {
 
         http
-                // Login details are checked against the users table.
                 .userDetailsService(userDetailsService)
 
                 .authorizeHttpRequests(auth -> auth
+
+                        // Public pages.
                         .requestMatchers(
                                 "/",
                                 "/home",
@@ -44,19 +46,41 @@ public class SecurityConfig {
                                 "/css/**"
                         ).permitAll()
 
+                        // Manager-only pages.
                         .requestMatchers(
                                 "/dashboard",
                                 "/users/**"
                         ).hasRole("MANAGER")
 
-                        .requestMatchers("/employee-dashboard")
-                        .authenticated()
+                        // Tailor-only page.
+                        .requestMatchers(
+                                "/tailor-dashboard"
+                        ).hasRole("TAILOR")
 
-                        .anyRequest()
-                        .authenticated()
+                        // Employees, accountants, and managers may use
+                        // store operations and payment-related pages.
+                        .requestMatchers(
+                                "/customers/**",
+                                "/orders/**",
+                                "/payments/**"
+                        ).hasAnyRole(
+                                "MANAGER",
+                                "EMPLOYEE",
+                                "ACCOUNTANT"
+                        )
+
+                        // Regular employee dashboard.
+                        .requestMatchers(
+                                "/employee-dashboard"
+                        ).hasAnyRole(
+                                "EMPLOYEE",
+                                "ACCOUNTANT"
+                        )
+
+                        // Everything else requires login.
+                        .anyRequest().authenticated()
                 )
 
-                // Shows a friendly page instead of the default Whitelabel page.
                 .exceptionHandling(exception -> exception
                         .accessDeniedPage("/access-denied")
                 )
