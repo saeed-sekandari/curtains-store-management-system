@@ -2,11 +2,13 @@ package com.royalcurtains.storemanagement.web;
 
 import com.royalcurtains.storemanagement.model.Customer;
 import com.royalcurtains.storemanagement.model.Order;
+import com.royalcurtains.storemanagement.model.OrderItem;
 import com.royalcurtains.storemanagement.model.Payment;
 import com.royalcurtains.storemanagement.model.Role;
 import com.royalcurtains.storemanagement.model.Store;
 import com.royalcurtains.storemanagement.model.User;
 import com.royalcurtains.storemanagement.repository.CustomerRepository;
+import com.royalcurtains.storemanagement.repository.OrderItemRepository;
 import com.royalcurtains.storemanagement.repository.OrderRepository;
 import com.royalcurtains.storemanagement.repository.PaymentRepository;
 import com.royalcurtains.storemanagement.repository.StoreRepository;
@@ -34,6 +36,7 @@ import java.util.Map;
 public class OrderController {
 
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final StoreRepository storeRepository;
     private final CustomerRepository customerRepository;
     private final PaymentRepository paymentRepository;
@@ -42,12 +45,15 @@ public class OrderController {
 
     public OrderController(
             OrderRepository orderRepository,
+            OrderItemRepository orderItemRepository,
             StoreRepository storeRepository,
             CustomerRepository customerRepository,
             PaymentRepository paymentRepository,
             UserRepository userRepository,
             StoreAccessService storeAccessService) {
+
         this.orderRepository = orderRepository;
+        this.orderItemRepository = orderItemRepository;
         this.storeRepository = storeRepository;
         this.customerRepository = customerRepository;
         this.paymentRepository = paymentRepository;
@@ -78,8 +84,10 @@ public class OrderController {
 
         Map<Long, BigDecimal> paidAmounts = new HashMap<>();
         Map<Long, BigDecimal> remainingAmounts = new HashMap<>();
+        Map<Long, String> workStatuses = new HashMap<>();
 
         for (Order order : orders) {
+
             BigDecimal paid =
                     paymentRepository
                             .sumActiveAfnPaymentsByOrderId(order.getId());
@@ -91,6 +99,10 @@ public class OrderController {
 
             paidAmounts.put(order.getId(), paid);
             remainingAmounts.put(order.getId(), remaining);
+
+            workStatuses.put(
+                    order.getId(),
+                    calculateWorkStatus(order.getId()));
         }
 
         model.addAttribute("store", selectedStore);
@@ -99,6 +111,7 @@ public class OrderController {
         model.addAttribute("orders", orders);
         model.addAttribute("paidAmounts", paidAmounts);
         model.addAttribute("remainingAmounts", remainingAmounts);
+        model.addAttribute("workStatuses", workStatuses);
 
         return "orders";
     }
@@ -161,6 +174,7 @@ public class OrderController {
         } else {
             if (newCustomerName == null
                     || newCustomerName.isBlank()) {
+
                 throw new IllegalArgumentException(
                         "New customer name is required");
             }
@@ -176,7 +190,7 @@ public class OrderController {
 
         order.setStore(selectedStore);
         order.setCustomer(customer);
-        order.setStatus("NEW");
+        order.setStatus("ACTIVE");
 
         if (initialPaymentAmount == null) {
             order.setDepositAmount(BigDecimal.ZERO);
@@ -250,6 +264,35 @@ public class OrderController {
 
         return "redirect:/orders?store="
                 + order.getStore().getCode();
+    }
+
+    // Calculates the overall work status shown on the Orders page.
+    private String calculateWorkStatus(Long orderId) {
+
+        List<OrderItem> items =
+                orderItemRepository.findByOrderId(orderId);
+
+        if (items.isEmpty()) {
+            return "NOT_STARTED";
+        }
+
+        boolean anyInProgress = items.stream()
+                .anyMatch(item ->
+                        "IN_PROGRESS".equals(item.getWorkStatus()));
+
+        boolean allCompleted = items.stream()
+                .allMatch(item ->
+                        "COMPLETED".equals(item.getWorkStatus()));
+
+        if (allCompleted) {
+            return "COMPLETED";
+        }
+
+        if (anyInProgress) {
+            return "IN_PROGRESS";
+        }
+
+        return "NOT_STARTED";
     }
 
     private Order findOrder(Long orderId) {

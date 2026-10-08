@@ -28,30 +28,28 @@ public class Order {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
-    // Kept for compatibility with existing records.
-    // New payment totals come from the payments table.
+    // Kept for compatibility with older records.
     @Column(precision = 14, scale = 2)
     private BigDecimal depositAmount;
 
+    // ACTIVE or CANCELLED
     @Column(nullable = false, length = 30)
     private String status;
 
     @Column(nullable = false)
     private LocalDate createdDate;
 
-    // The manager who cancelled the order.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cancelled_by_user_id")
+    @JoinColumn(name = "cancelled_by")
     private User cancelledBy;
 
-    @Column(name = "cancelled_at")
     private LocalDateTime cancelledAt;
 
-    @Column(name = "cancellation_reason", length = 500)
+    @Column(length = 500)
     private String cancellationReason;
 
     public Order() {
-        this.status = "NEW";
+        this.status = "ACTIVE";
         this.createdDate = LocalDate.now();
         this.depositAmount = BigDecimal.ZERO;
     }
@@ -141,14 +139,14 @@ public class Order {
     }
 
     public BigDecimal getRemainingAmount() {
-        BigDecimal total = totalAmount == null
-                ? BigDecimal.ZERO
-                : totalAmount;
+        if (totalAmount == null) {
+            return BigDecimal.ZERO;
+        }
 
         BigDecimal deposit = depositAmount == null
                 ? BigDecimal.ZERO
                 : depositAmount;
 
-        return total.subtract(deposit);
+        return totalAmount.subtract(deposit);
     }
 }

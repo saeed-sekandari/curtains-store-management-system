@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Products and Measurements</title>
+    <title>Order Details</title>
 
     <style>
         * {
@@ -31,7 +31,7 @@
         }
 
         main {
-            max-width: 1200px;
+            max-width: 1300px;
             margin: 35px auto;
             padding: 0 20px;
         }
@@ -78,7 +78,7 @@
 
         table {
             width: 100%;
-            min-width: 1050px;
+            min-width: 1250px;
             border-collapse: collapse;
             margin-top: 20px;
         }
@@ -98,11 +98,10 @@
 
         .status {
             display: inline-block;
-            padding: 5px 9px;
+            padding: 6px 9px;
             border-radius: 6px;
             font-size: 0.85rem;
             font-weight: bold;
-            background: #e2e8f0;
         }
 
         .received {
@@ -123,11 +122,6 @@
         .not-started {
             background: #f1f5f9;
             color: #475569;
-        }
-
-        .overdue {
-            color: #b42318;
-            font-weight: bold;
         }
 
         .fabric {
@@ -154,11 +148,13 @@
 <main>
     <section class="card">
 
-        <h2>Products and Measurements</h2>
+        <h2>Order Details</h2>
 
         <p>
             Order number:
-            <strong th:text="${order.orderNumber}">1001</strong>
+            <strong th:text="${order.orderNumber}">
+                1001
+            </strong>
         </p>
 
         <p>
@@ -170,25 +166,34 @@
 
         <div class="actions">
 
+            <!-- Tailors can view details but cannot add new work. -->
             <a class="button"
-               th:if="${order.status != 'CANCELLED'}"
+               th:if="${currentRole != 'TAILOR'
+                       and order.status != 'CANCELLED'}"
                th:href="@{/orders/{orderId}/items/new(orderId=${order.id})}">
                 Add Product or Measurement
             </a>
 
             <a class="button back-button"
+               th:if="${currentRole == 'TAILOR'}"
+               href="/tailor-dashboard">
+                Back to Tailor Dashboard
+            </a>
+
+            <a class="button back-button"
+               th:if="${currentRole != 'TAILOR'}"
                th:href="@{/orders(store=${order.store.code})}">
                 Back to Orders
             </a>
         </div>
 
-        <div th:if="${items == null or #lists.isEmpty(items)}"
-             class="empty-message">
+        <div class="empty-message"
+             th:if="${items == null or #lists.isEmpty(items)}">
             No products or measurements have been added to this order yet.
         </div>
 
-        <div th:if="${items != null and !#lists.isEmpty(items)}"
-             class="table-container">
+        <div class="table-container"
+             th:if="${items != null and !#lists.isEmpty(items)}">
 
             <table>
                 <thead>
@@ -198,12 +203,13 @@
                     <th>Measurements</th>
                     <th>Quantity</th>
                     <th>Fabric and Color</th>
-                    <th>Tailor</th>
-                    <th>Received</th>
-                    <th>Complete By</th>
-                    <th>Status</th>
-                    <th>Completed</th>
-                    <th>Notes</th>
+                    <th>Design</th>
+                    <th>Assigned Tailor</th>
+                    <th>Received Date</th>
+                    <th>Required Completion Date</th>
+                    <th>Work Status</th>
+                    <th>Completed Date</th>
+                    <th>Special Notes</th>
                 </tr>
                 </thead>
 
@@ -217,20 +223,20 @@
                     <td th:text="${item.roomName != null and !item.roomName.isBlank()
                                   ? item.roomName
                                   : 'Not specified'}">
-                        Living room
+                        Saloon
                     </td>
 
                     <td>
                         <span th:if="${item.width != null}"
                               th:text="${item.width + ' cm wide'}">
-                            280 cm wide
+                            300 cm wide
                         </span>
 
                         <br th:if="${item.width != null and item.height != null}">
 
                         <span th:if="${item.height != null}"
                               th:text="${item.height + ' cm high'}">
-                            250 cm high
+                            280 cm high
                         </span>
 
                         <span th:if="${item.width == null and item.height == null}">
@@ -239,21 +245,21 @@
                     </td>
 
                     <td th:text="${item.quantity}">
-                        1
+                        4
                     </td>
 
                     <td>
-                        <div th:if="${item.fabrics != null and !#lists.isEmpty(item.fabrics)}"
-                             th:each="fabric : ${item.fabrics}"
-                             class="fabric">
+                        <div class="fabric"
+                             th:if="${item.fabrics != null and !#lists.isEmpty(item.fabrics)}"
+                             th:each="fabric : ${item.fabrics}">
 
                             <strong th:text="${fabric.fabricName}">
-                                Velvet
+                                Jali Nakhi
                             </strong>
 
                             <span th:if="${fabric.color != null and !fabric.color.isBlank()}"
-                                  th:text="' - ' + ${fabric.color}">
-                                - Dark blue
+                                  th:text="${' - ' + fabric.color}">
+                                - Green
                             </span>
 
                             <div th:if="${fabric.notes != null and !fabric.notes.isBlank()}"
@@ -267,10 +273,16 @@
                         </span>
                     </td>
 
+                    <td th:text="${item.design != null and !item.design.isBlank()
+                                  ? item.design
+                                  : 'Not specified'}">
+                        Ringi Sada
+                    </td>
+
                     <td>
                         <span th:if="${item.assignedTailor != null}"
                               th:text="${item.assignedTailor.fullName}">
-                            Tailor name
+                            Mohammad
                         </span>
 
                         <span th:if="${item.assignedTailor == null}">
@@ -281,7 +293,7 @@
                     <td>
                         <span th:if="${item.receivedAt != null}"
                               th:text="${#temporals.format(item.receivedAt, 'yyyy-MM-dd HH:mm')}">
-                            2026-10-06 15:30
+                            2026-10-08 13:42
                         </span>
 
                         <span th:if="${item.receivedAt == null}">
@@ -289,15 +301,10 @@
                         </span>
                     </td>
 
-                    <td>
-                        <span th:if="${item.requiredCompletionDate != null}"
-                              th:text="${#temporals.format(item.requiredCompletionDate, 'yyyy-MM-dd')}">
-                            2026-10-12
-                        </span>
-
-                        <span th:if="${item.requiredCompletionDate == null}">
-                            Not set
-                        </span>
+                    <td th:text="${item.requiredCompletionDate != null
+                                  ? item.requiredCompletionDate
+                                  : 'Not set'}">
+                        2026-10-15
                     </td>
 
                     <td>
@@ -306,14 +313,14 @@
                                               (${item.workStatus == 'IN_PROGRESS'} ? ' in-progress' :
                                               (${item.workStatus == 'COMPLETED'} ? ' completed' : ' not-started'))"
                               th:text="${item.workStatus}">
-                            RECEIVED
+                            COMPLETED
                         </span>
                     </td>
 
                     <td>
                         <span th:if="${item.completedAt != null}"
                               th:text="${#temporals.format(item.completedAt, 'yyyy-MM-dd HH:mm')}">
-                            2026-10-10 16:00
+                            2026-10-08 13:43
                         </span>
 
                         <span th:if="${item.completedAt == null}">
@@ -321,21 +328,10 @@
                         </span>
                     </td>
 
-                    <td>
-                        <span th:if="${item.design != null and !item.design.isBlank()}"
-                              th:text="${item.design}">
-                            Two-panel curtain
-                        </span>
-
-                        <span th:if="${item.specialNotes != null and !item.specialNotes.isBlank()}"
-                              th:text="${item.specialNotes}">
-                            Special instructions
-                        </span>
-
-                        <span th:if="${(item.design == null or item.design.isBlank())
-                                      and (item.specialNotes == null or item.specialNotes.isBlank())}">
-                            None
-                        </span>
+                    <td th:text="${item.specialNotes != null and !item.specialNotes.isBlank()
+                                  ? item.specialNotes
+                                  : 'None'}">
+                        Special instructions
                     </td>
 
                 </tr>

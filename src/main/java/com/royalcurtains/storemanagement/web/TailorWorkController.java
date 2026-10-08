@@ -5,6 +5,7 @@ import com.royalcurtains.storemanagement.model.Role;
 import com.royalcurtains.storemanagement.model.User;
 import com.royalcurtains.storemanagement.repository.OrderItemRepository;
 import com.royalcurtains.storemanagement.repository.UserRepository;
+import com.royalcurtains.storemanagement.service.NotificationService;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,13 +20,16 @@ public class TailorWorkController {
 
     private final OrderItemRepository orderItemRepository;
     private final UserRepository userRepository;
+    private final NotificationService notificationService;
 
     public TailorWorkController(
             OrderItemRepository orderItemRepository,
-            UserRepository userRepository) {
+            UserRepository userRepository,
+            NotificationService notificationService) {
 
         this.orderItemRepository = orderItemRepository;
         this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     // Starts work assigned to the logged-in tailor.
@@ -51,7 +55,7 @@ public class TailorWorkController {
         return "redirect:/tailor-dashboard";
     }
 
-    // Marks the assigned work as completed.
+    // Completes the work and notifies store employees.
     @Transactional
     @PostMapping("/tailor/work/{itemId}/complete")
     public String completeWork(
@@ -72,6 +76,10 @@ public class TailorWorkController {
         item.setCompletedAt(LocalDateTime.now());
 
         orderItemRepository.save(item);
+
+        // Sends a simple message to employees assigned to this store.
+        notificationService.notifyEmployeesOrderCompleted(
+                item.getOrder());
 
         return "redirect:/tailor-dashboard";
     }

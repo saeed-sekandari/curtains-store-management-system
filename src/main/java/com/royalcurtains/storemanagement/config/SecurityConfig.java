@@ -4,6 +4,7 @@ import com.royalcurtains.storemanagement.security.DatabaseUserDetailsService;
 import com.royalcurtains.storemanagement.security.RoleBasedLoginSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -52,13 +53,33 @@ public class SecurityConfig {
                                 "/users/**"
                         ).hasRole("MANAGER")
 
-                        // Tailor-only page.
+                        // Tailor dashboard.
                         .requestMatchers(
                                 "/tailor-dashboard"
                         ).hasRole("TAILOR")
 
-                        // Employees, accountants, and managers may use
-                        // store operations and payment-related pages.
+                        // All three roles may view order details.
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/orders/*/items"
+                        ).hasAnyRole(
+                                "MANAGER",
+                                "EMPLOYEE",
+                                "TAILOR",
+                                "ACCOUNTANT"
+                        )
+
+                        // Only managers, employees, and accountants may
+                        // add or create order work items.
+                        .requestMatchers(
+                                "/orders/*/items/**"
+                        ).hasAnyRole(
+                                "MANAGER",
+                                "EMPLOYEE",
+                                "ACCOUNTANT"
+                        )
+
+                        // Store operations and payment pages.
                         .requestMatchers(
                                 "/customers/**",
                                 "/orders/**",
@@ -69,7 +90,7 @@ public class SecurityConfig {
                                 "ACCOUNTANT"
                         )
 
-                        // Regular employee dashboard.
+                        // Employee and accountant dashboard.
                         .requestMatchers(
                                 "/employee-dashboard"
                         ).hasAnyRole(

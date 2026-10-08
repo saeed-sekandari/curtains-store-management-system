@@ -49,7 +49,7 @@ public class OrderItemController {
         this.storeAccessService = storeAccessService;
     }
 
-    // Shows all products and custom work for one order.
+    // Shows complete order details for employees, managers, and tailors.
     @Transactional
     @GetMapping("/orders/{orderId}/items")
     public String orderItems(
@@ -61,15 +61,23 @@ public class OrderItemController {
 
         checkStoreAccess(order, principal);
 
+        User currentUser = userRepository
+                .findByUsername(principal.getName())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found"));
+
         model.addAttribute("order", order);
         model.addAttribute(
                 "items",
                 orderItemRepository.findByOrderId(orderId));
+        model.addAttribute(
+                "currentRole",
+                currentUser.getRole().name());
 
         return "order-items";
     }
 
-    // Opens the form for adding a curtain, mattress, or pillow.
+    // Opens the form for adding measurements and product information.
     @Transactional
     @GetMapping("/orders/{orderId}/items/new")
     public String newItem(
@@ -81,9 +89,10 @@ public class OrderItemController {
 
         checkStoreAccess(order, principal);
 
-        List<User> tailors = userRepository.findByRoleAndAssignedStoreId(
-                Role.TAILOR,
-                order.getStore().getId());
+        List<User> tailors = userRepository
+                .findByRoleAndAssignedStoreId(
+                        Role.TAILOR,
+                        order.getStore().getId());
 
         model.addAttribute("order", order);
         model.addAttribute("tailors", tailors);
@@ -91,7 +100,7 @@ public class OrderItemController {
         return "order-item-form";
     }
 
-    // Saves one product or custom work item.
+    // Saves one product, measurements, and fabric information.
     @Transactional
     @PostMapping("/orders/{orderId}/items")
     public String saveItem(
@@ -104,15 +113,12 @@ public class OrderItemController {
             @RequestParam(required = false) String design,
             @RequestParam(required = false) String specialNotes,
             @RequestParam(required = false) Long tailorId,
-
             @RequestParam(required = false) String fabricName,
             @RequestParam(required = false) String color,
             @RequestParam(required = false) String fabricNotes,
-
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
             LocalDate requiredCompletionDate,
-
             Principal principal) {
 
         Order order = findOrder(orderId);
@@ -131,14 +137,11 @@ public class OrderItemController {
         item.setSpecialNotes(specialNotes);
         item.setRequiredCompletionDate(requiredCompletionDate);
 
-        /*
-         * A tailor does not accept or reject the task.
-         * When the manager assigns the work, it is automatically received.
-         */
         if (tailorId != null) {
             User tailor = userRepository.findById(tailorId)
                     .orElseThrow(() ->
-                            new IllegalArgumentException("Tailor not found"));
+                            new IllegalArgumentException(
+                                    "Tailor not found"));
 
             if (tailor.getRole() != Role.TAILOR) {
                 throw new IllegalArgumentException(
@@ -156,7 +159,7 @@ public class OrderItemController {
 
             item.setAssignedTailor(tailor);
 
-            // The system records the receiving time automatically.
+            // Assigned work is automatically received.
             item.setReceivedAt(LocalDateTime.now());
             item.setWorkStatus("RECEIVED");
 
@@ -166,7 +169,6 @@ public class OrderItemController {
 
         OrderItem savedItem = orderItemRepository.save(item);
 
-        // Saves the fabric information when a fabric name was entered.
         if (fabricName != null && !fabricName.isBlank()) {
             OrderItemFabric fabric = new OrderItemFabric();
 

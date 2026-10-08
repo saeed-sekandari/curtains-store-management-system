@@ -1,6 +1,7 @@
 package com.royalcurtains.storemanagement.web;
 
 import com.royalcurtains.storemanagement.model.User;
+import com.royalcurtains.storemanagement.repository.NotificationRepository;
 import com.royalcurtains.storemanagement.repository.UserRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,12 +13,17 @@ import java.security.Principal;
 public class EmployeeController {
 
     private final UserRepository userRepository;
+    private final NotificationRepository notificationRepository;
 
-    public EmployeeController(UserRepository userRepository) {
+    public EmployeeController(
+            UserRepository userRepository,
+            NotificationRepository notificationRepository) {
+
         this.userRepository = userRepository;
+        this.notificationRepository = notificationRepository;
     }
 
-    // Shows the employee's assigned store after login.
+    // Shows the employee's store and simple work notifications.
     @GetMapping("/employee-dashboard")
     public String employeeDashboard(
             Model model,
@@ -40,6 +46,17 @@ public class EmployeeController {
         model.addAttribute("role", user.getRole());
         model.addAttribute("assignedStoreName", assignedStoreName);
         model.addAttribute("assignedStoreCode", assignedStoreCode);
+
+        // Loads this employee's notifications.
+        model.addAttribute(
+                "notifications",
+                notificationRepository
+                        .findByRecipientIdOrderByCreatedAtDesc(user.getId()));
+
+        model.addAttribute(
+                "unreadNotificationCount",
+                notificationRepository
+                        .countByRecipientIdAndReadFalse(user.getId()));
 
         return "employee-dashboard";
     }
