@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Add Product or Measurement</title>
+    <title>Add Order Details</title>
 
     <style>
         * {
@@ -27,11 +27,11 @@
 
         .topbar h1 {
             margin: 0;
-            font-size: 1.4rem;
+            font-size: 1.5rem;
         }
 
         main {
-            max-width: 760px;
+            max-width: 850px;
             margin: 35px auto;
             padding: 0 20px;
         }
@@ -43,22 +43,25 @@
             box-shadow: 0 5px 18px rgba(25, 53, 87, 0.1);
         }
 
+        h2,
+        h3 {
+            color: #173b68;
+        }
+
         h2 {
             margin-top: 0;
-            color: #173b68;
         }
 
         h3 {
             margin-top: 30px;
             padding-bottom: 8px;
             border-bottom: 1px solid #e2e8f0;
-            color: #173b68;
         }
 
         label {
             display: block;
             margin-top: 16px;
-            margin-bottom: 6px;
+            margin-bottom: 7px;
             font-weight: bold;
         }
 
@@ -80,11 +83,97 @@
         .help-text {
             color: #667085;
             font-size: 0.9rem;
-            margin-top: 5px;
+            line-height: 1.5;
         }
 
         .required {
             color: #b42318;
+        }
+
+        .order-info {
+            color: #536174;
+            line-height: 1.7;
+        }
+
+        .inventory-row {
+            background: #f8fafc;
+            border: 1px solid #dbe3ec;
+            border-radius: 10px;
+            padding: 18px;
+            margin-top: 14px;
+        }
+
+        .inventory-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .inventory-row-header strong {
+            color: #173b68;
+        }
+
+        .product-search {
+            margin-bottom: 10px;
+        }
+
+        .search-results {
+            border: 1px solid #dbe3ec;
+            border-radius: 8px;
+            background: white;
+        }
+
+        .inventory-result {
+            display: none;
+            width: 100%;
+            padding: 12px;
+            border: 0;
+            border-bottom: 1px solid #e2e8f0;
+            background: white;
+            color: #172033;
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .inventory-result:hover {
+            background: #eef3f8;
+        }
+
+        .no-results {
+            display: none;
+            padding: 12px;
+            color: #667085;
+        }
+
+        .selected-product {
+            display: none;
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: #e8f7ee;
+            color: #166534;
+            font-weight: bold;
+        }
+
+        .remove-product {
+            border: 0;
+            background: #b42318;
+            color: white;
+            border-radius: 6px;
+            padding: 7px 10px;
+            cursor: pointer;
+        }
+
+        .add-product {
+            margin-top: 16px;
+            border: 0;
+            background: #173b68;
+            color: white;
+            padding: 11px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
         }
 
         .button-row {
@@ -93,7 +182,7 @@
             margin-top: 28px;
         }
 
-        button,
+        .save-button,
         .cancel-button {
             flex: 1;
             padding: 12px;
@@ -105,22 +194,14 @@
             cursor: pointer;
         }
 
-        button {
+        .save-button {
             background: #d69b2d;
             color: white;
-        }
-
-        button:hover {
-            background: #b9801e;
         }
 
         .cancel-button {
             background: #e2e8f0;
             color: #172033;
-        }
-
-        .cancel-button:hover {
-            background: #cbd5e1;
         }
     </style>
 </head>
@@ -134,24 +215,25 @@
 <main>
     <section class="card">
 
-        <h2>Add Product or Measurement</h2>
+        <h2>Add Order Details</h2>
 
-        <p>
+        <div class="order-info">
             Order number:
-            <strong th:text="${order.orderNumber}">1001</strong>
-        </p>
+            <strong th:text="${order.orderNumber}">
+                1001
+            </strong>
 
-        <p>
+            <br>
+
             Customer:
             <strong th:text="${order.customer.fullName}">
                 Customer name
             </strong>
-        </p>
+        </div>
 
         <form th:action="@{/orders/{orderId}/items(orderId=${order.id})}"
               method="post">
 
-            <!-- Required by Spring Security for form submissions. -->
             <input type="hidden"
                    th:name="${_csrf.parameterName}"
                    th:value="${_csrf.token}">
@@ -159,7 +241,8 @@
             <h3>Product Information</h3>
 
             <label for="productType">
-                Product Type <span class="required">*</span>
+                Product Type
+                <span class="required">*</span>
             </label>
 
             <select id="productType"
@@ -180,7 +263,8 @@
                    placeholder="Example: Living room">
 
             <label for="quantity">
-                Quantity <span class="required">*</span>
+                Quantity
+                <span class="required">*</span>
             </label>
 
             <input id="quantity"
@@ -193,7 +277,7 @@
             <h3>Measurements</h3>
 
             <p class="help-text">
-                Enter measurements only in centimeters. Example: 280.
+                Enter measurements only in centimeters.
             </p>
 
             <label for="width">Width (cm)</label>
@@ -202,8 +286,7 @@
                    name="width"
                    type="number"
                    min="0"
-                   step="0.01"
-                   placeholder="Example: 280">
+                   step="0.01">
 
             <label for="height">Height (cm)</label>
 
@@ -211,34 +294,135 @@
                    name="height"
                    type="number"
                    min="0"
-                   step="0.01"
-                   placeholder="Example: 250">
+                   step="0.01">
 
-            <h3>Fabric Information</h3>
+            <h3>Inventory Products Used</h3>
 
-            <label for="fabricName">Fabric Name</label>
+            <p class="help-text">
+                Search for a product by name, color, location, or code.
+                Only matching products will appear.
+            </p>
+
+            <div id="inventory-products">
+
+                <div class="inventory-row">
+
+                    <div class="inventory-row-header">
+                        <strong>Product 1</strong>
+
+                        <button class="remove-product"
+                                type="button"
+                                onclick="removeProduct(this)"
+                                style="display: none;">
+                            Remove
+                        </button>
+                    </div>
+
+                    <label>
+                        Search Product
+                        <span class="required">*</span>
+                    </label>
+
+                    <input class="product-search"
+                           type="search"
+                           placeholder="Type product name, color, or code"
+                           oninput="searchProducts(this)">
+
+                    <div class="search-results">
+
+                        <button class="inventory-result"
+                                type="button"
+                                th:each="product : ${inventoryProducts}"
+                                th:data-product-id="${product.id}"
+                                th:data-search="|${product.productName} ${product.color} ${product.location} ${product.productCode}|"
+                                th:onclick="selectProduct(this)">
+
+                            <strong th:text="${product.productName}">
+                                Velvet fabric
+                            </strong>
+
+                            —
+                            <span th:text="${product.color != null
+                                             ? product.color
+                                             : 'No color'}">
+                                Dark blue
+                            </span>
+
+                            —
+                            <span th:text="${product.productCode}">
+                                VEL-BLU-001
+                            </span>
+
+                            —
+                            Available:
+                            <span th:text="${product.meterage}">
+                                35
+                            </span>
+                            meters
+                        </button>
+
+                        <div class="no-results">
+                            No matching product found.
+                        </div>
+                    </div>
+
+                    <input type="hidden"
+                           name="inventoryProductIds"
+                           class="selected-product-id">
+
+                    <span class="selected-product"></span>
+
+                    <label>
+                        Estimated Usage (meters)
+                        <span class="required">*</span>
+                    </label>
+
+                    <input name="estimatedMeterages"
+                           type="number"
+                           min="0.01"
+                           step="0.01"
+                           placeholder="Example: 12"
+                           required>
+                </div>
+
+            </div>
+
+            <button class="add-product"
+                    type="button"
+                    onclick="addProduct()">
+                + Add Another Product
+            </button>
+
+            <h3>Fabric Notes</h3>
+
+            <label for="fabricName">
+                Additional Fabric Information
+            </label>
 
             <input id="fabricName"
                    name="fabricName"
-                   type="text"
-                   placeholder="Example: Velvet">
+                   type="text">
 
-            <label for="color">Color</label>
+            <label for="color">
+                Additional Color Information
+            </label>
 
             <input id="color"
                    name="color"
-                   type="text"
-                   placeholder="Example: Dark blue">
+                   type="text">
 
-            <label for="fabricNotes">Fabric Notes</label>
+            <label for="fabricNotes">
+                Fabric Notes
+            </label>
 
             <textarea id="fabricNotes"
-                      name="fabricNotes"
-                      placeholder="Add any important fabric information"></textarea>
+                      name="fabricNotes"></textarea>
 
             <h3>Tailor Assignment</h3>
 
-            <label for="tailorId">Assigned Tailor</label>
+            <label for="tailorId">
+                Assigned Tailor
+            </label>
 
             <select id="tailorId"
                     name="tailorId">
@@ -252,36 +436,34 @@
                 </option>
             </select>
 
+            <p class="help-text">
+                When a tailor is selected, the estimated inventory usage
+                will be deducted automatically.
+            </p>
+
             <label for="requiredCompletionDate">
                 Required Completion Date
-                <span class="required">*</span>
             </label>
 
             <input id="requiredCompletionDate"
                    name="requiredCompletionDate"
-                   type="date"
-                   required>
-
-            <p class="help-text">
-                The tailor must complete this work by this date.
-            </p>
+                   type="date">
 
             <label for="design">Design</label>
 
             <input id="design"
                    name="design"
-                   type="text"
-                   placeholder="Example: Two-panel curtain">
+                   type="text">
 
             <label for="specialNotes">Special Notes</label>
 
             <textarea id="specialNotes"
-                      name="specialNotes"
-                      placeholder="Add special instructions for the tailor"></textarea>
+                      name="specialNotes"></textarea>
 
             <div class="button-row">
-                <button type="submit">
-                    Save Product
+                <button class="save-button"
+                        type="submit">
+                    Save Order Details
                 </button>
 
                 <a class="cancel-button"
@@ -293,6 +475,128 @@
         </form>
     </section>
 </main>
+
+<script>
+    function searchProducts(searchInput) {
+        const row = searchInput.closest(".inventory-row");
+        const results = row.querySelectorAll(".inventory-result");
+        const noResults = row.querySelector(".no-results");
+        const searchText = searchInput.value.toLowerCase().trim();
+
+        let visibleCount = 0;
+
+        results.forEach(function (result) {
+            const productText =
+                result.dataset.search.toLowerCase();
+
+            const matches =
+                searchText.length > 0
+                && productText.includes(searchText);
+
+            result.style.display = matches ? "block" : "none";
+
+            if (matches) {
+                visibleCount++;
+            }
+        });
+
+        noResults.style.display =
+            searchText.length > 0 && visibleCount === 0
+                ? "block"
+                : "none";
+    }
+
+    function selectProduct(result) {
+        const row = result.closest(".inventory-row");
+
+        const hiddenInput =
+            row.querySelector(".selected-product-id");
+
+        const selectedProduct =
+            row.querySelector(".selected-product");
+
+        const searchInput =
+            row.querySelector(".product-search");
+
+        hiddenInput.value = result.dataset.productId;
+
+        selectedProduct.textContent =
+            "Selected: " + result.textContent.trim();
+
+        selectedProduct.style.display = "block";
+
+        searchInput.value =
+            result.querySelector("strong").textContent.trim();
+
+        row.querySelectorAll(".inventory-result")
+            .forEach(function (otherResult) {
+                otherResult.style.display = "none";
+            });
+
+        row.querySelector(".no-results").style.display = "none";
+    }
+
+    function addProduct() {
+        const container =
+            document.getElementById("inventory-products");
+
+        const firstRow =
+            container.querySelector(".inventory-row");
+
+        const newRow =
+            firstRow.cloneNode(true);
+
+        const productNumber =
+            container.querySelectorAll(".inventory-row").length + 1;
+
+        newRow.querySelector(
+            ".inventory-row-header strong"
+        ).textContent = "Product " + productNumber;
+
+        newRow.querySelector(".product-search").value = "";
+        newRow.querySelector(".selected-product-id").value = "";
+        newRow.querySelector(".selected-product").textContent = "";
+        newRow.querySelector(".selected-product").style.display =
+            "none";
+
+        newRow.querySelector(
+            'input[name="estimatedMeterages"]'
+        ).value = "";
+
+        newRow.querySelector(".remove-product").style.display =
+            "inline-block";
+
+        newRow.querySelectorAll(".inventory-result")
+            .forEach(function (result) {
+                result.style.display = "none";
+            });
+
+        newRow.querySelector(".no-results").style.display = "none";
+
+        container.appendChild(newRow);
+    }
+
+    function removeProduct(button) {
+        const container =
+            document.getElementById("inventory-products");
+
+        const rows =
+            container.querySelectorAll(".inventory-row");
+
+        if (rows.length <= 1) {
+            return;
+        }
+
+        button.closest(".inventory-row").remove();
+
+        container.querySelectorAll(".inventory-row")
+            .forEach(function (row, index) {
+                row.querySelector(
+                    ".inventory-row-header strong"
+                ).textContent = "Product " + (index + 1);
+            });
+    }
+</script>
 
 </body>
 </html>

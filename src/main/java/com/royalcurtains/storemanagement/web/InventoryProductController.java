@@ -39,7 +39,6 @@ public class InventoryProductController {
         this.storeAccessService = storeAccessService;
     }
 
-    // Shows inventory products and supports searching.
     @GetMapping("/inventory")
     public String inventory(
             @RequestParam String store,
@@ -86,7 +85,6 @@ public class InventoryProductController {
         return "inventory";
     }
 
-    // Opens the form for adding a product.
     @GetMapping("/inventory/new")
     public String newProduct(
             @RequestParam String store,
@@ -109,7 +107,6 @@ public class InventoryProductController {
         return "inventory-form";
     }
 
-    // Saves a new inventory product.
     @Transactional
     @PostMapping("/inventory")
     public String saveProduct(
@@ -132,24 +129,11 @@ public class InventoryProductController {
                 selectedStore.getCode()
         );
 
-        if (productName == null || productName.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Product name is required"
-            );
-        }
-
-        if (meterage == null
-                || meterage.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException(
-                    "Meterage cannot be negative"
-            );
-        }
-
-        if (productCode == null || productCode.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Product code is required"
-            );
-        }
+        validateProductData(
+                productName,
+                meterage,
+                productCode
+        );
 
         String cleanedCode = productCode.trim();
 
@@ -160,8 +144,10 @@ public class InventoryProductController {
         }
 
         InventoryProduct product = new InventoryProduct();
+
         product.setProductName(productName.trim());
         product.setColor(cleanValue(color));
+        product.setOriginalMeterage(meterage);
         product.setMeterage(meterage);
         product.setLocation(cleanValue(location));
         product.setProductCode(cleanedCode);
@@ -179,7 +165,6 @@ public class InventoryProductController {
                 + selectedStore.getCode();
     }
 
-    // Opens the edit form.
     @GetMapping("/inventory/{productId}/edit")
     public String editProduct(
             @PathVariable Long productId,
@@ -216,7 +201,6 @@ public class InventoryProductController {
         return "inventory-edit-form";
     }
 
-    // Saves corrections made by an employee or manager.
     @Transactional
     @PostMapping("/inventory/{productId}/edit")
     public String updateProduct(
@@ -253,24 +237,11 @@ public class InventoryProductController {
             );
         }
 
-        if (productName == null || productName.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Product name is required"
-            );
-        }
-
-        if (meterage == null
-                || meterage.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalArgumentException(
-                    "Meterage cannot be negative"
-            );
-        }
-
-        if (productCode == null || productCode.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Product code is required"
-            );
-        }
+        validateProductData(
+                productName,
+                meterage,
+                productCode
+        );
 
         product.setProductName(productName.trim());
         product.setColor(cleanValue(color));
@@ -291,7 +262,6 @@ public class InventoryProductController {
                 + selectedStore.getCode();
     }
 
-    // Only the manager can deactivate an inventory product.
     @Transactional
     @PostMapping("/inventory/{productId}/deactivate")
     public String deactivateProduct(
@@ -334,6 +304,31 @@ public class InventoryProductController {
 
         return "redirect:/inventory?store="
                 + selectedStore.getCode();
+    }
+
+    private void validateProductData(
+            String productName,
+            BigDecimal meterage,
+            String productCode) {
+
+        if (productName == null || productName.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Product name is required"
+            );
+        }
+
+        if (meterage == null
+                || meterage.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(
+                    "Meterage cannot be negative"
+            );
+        }
+
+        if (productCode == null || productCode.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Product code is required"
+            );
+        }
     }
 
     private User getCurrentUser(Principal principal) {

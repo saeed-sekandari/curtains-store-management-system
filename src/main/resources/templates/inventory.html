@@ -31,7 +31,7 @@
         }
 
         main {
-            max-width: 1200px;
+            max-width: 1250px;
             margin: 35px auto;
             padding: 0 20px;
         }
@@ -109,7 +109,7 @@
 
         table {
             width: 100%;
-            min-width: 950px;
+            min-width: 1150px;
             border-collapse: collapse;
         }
 
@@ -142,6 +142,10 @@
             color: #536174;
             margin-top: 0;
         }
+
+        .action-column {
+            min-width: 170px;
+        }
     </style>
 </head>
 
@@ -164,6 +168,7 @@
         </p>
 
         <div class="actions">
+
             <a class="button primary"
                th:href="@{/inventory/new(store=${store.code})}">
                 Add Product
@@ -180,6 +185,7 @@
                th:href="@{/employee-dashboard}">
                 Back to Dashboard
             </a>
+
         </div>
 
         <p class="success"
@@ -189,8 +195,10 @@
         </p>
 
         <p class="muted">
-            Employees can add and correct inventory records.
+            Employees can add and correct product information.
             Managers can also deactivate products.
+            Inventory decreases automatically when products are used
+            for an order.
         </p>
     </section>
 
@@ -205,6 +213,7 @@
                    th:value="${store.code}">
 
             <div class="search-row">
+
                 <input class="search-input"
                        type="search"
                        name="search"
@@ -220,6 +229,7 @@
                    th:href="@{/inventory(store=${store.code})}">
                     Clear
                 </a>
+
             </div>
         </form>
 
@@ -234,23 +244,27 @@
         <h2>Available Products</h2>
 
         <div class="table-wrapper">
+
             <table>
                 <thead>
                 <tr>
                     <th>Product Name</th>
                     <th>Color</th>
-                    <th>Meterage</th>
+                    <th>Original Meterage</th>
+                    <th>Available Meterage</th>
                     <th>Location</th>
                     <th>Product Code</th>
                     <th>Added By</th>
                     <th>Date Added</th>
                     <th>Last Edited</th>
-                    <th>Actions</th>
+                    <th class="action-column">Actions</th>
                 </tr>
                 </thead>
 
                 <tbody>
+
                 <tr th:each="product : ${products}">
+
                     <td th:text="${product.productName}">
                         Velvet fabric
                     </td>
@@ -262,10 +276,21 @@
                     </td>
 
                     <td>
-                        <span th:text="${product.meterage}">
+                        <span th:text="${product.originalMeterage != null
+                                        ? product.originalMeterage
+                                        : product.meterage}">
                             35
                         </span>
                         meters
+                    </td>
+
+                    <td>
+                        <strong>
+                            <span th:text="${product.meterage}">
+                                35
+                            </span>
+                            meters
+                        </strong>
                     </td>
 
                     <td th:text="${product.location != null
@@ -291,7 +316,9 @@
                     </td>
 
                     <td class="small">
+
                         <span th:if="${product.lastEditedAt != null}">
+
                             <span th:text="${#temporals.format(
                                 product.lastEditedAt,
                                 'yyyy-MM-dd HH:mm'
@@ -306,24 +333,28 @@
                                   th:text="|By ${product.lastEditedBy.fullName}|">
                                 By Ahmad Rahimi
                             </span>
+
                         </span>
 
                         <span class="muted"
                               th:if="${product.lastEditedAt == null}">
                             Not edited
                         </span>
+
                     </td>
 
-                    <td>
+                    <td class="action-column">
+
                         <a class="button secondary small"
                            th:href="@{/inventory/{productId}/edit(
                                productId=${product.id},
                                store=${store.code}
                            )}">
-                            Edit
+                            Edit Details
                         </a>
 
                         <span th:if="${currentRole == 'MANAGER'}">
+
                             <form class="inline-form"
                                   th:action="@{/inventory/{productId}/deactivate(
                                       productId=${product.id}
@@ -345,18 +376,23 @@
                                         );">
                                     Deactivate
                                 </button>
+
                             </form>
+
                         </span>
+
                     </td>
                 </tr>
 
                 <tr th:if="${#lists.isEmpty(products)}">
-                    <td colspan="9" class="muted">
+                    <td colspan="10" class="muted">
                         No matching inventory products were found.
                     </td>
                 </tr>
+
                 </tbody>
             </table>
+
         </div>
     </section>
 

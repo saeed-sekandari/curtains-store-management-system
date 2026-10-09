@@ -1,11 +1,16 @@
 package com.royalcurtains.storemanagement.web;
 
+import com.royalcurtains.storemanagement.model.InventoryMovement;
+import com.royalcurtains.storemanagement.model.InventoryProduct;
 import com.royalcurtains.storemanagement.model.Order;
 import com.royalcurtains.storemanagement.model.OrderItem;
 import com.royalcurtains.storemanagement.model.OrderItemFabric;
+import com.royalcurtains.storemanagement.model.OrderItemInventoryUsage;
 import com.royalcurtains.storemanagement.model.Role;
 import com.royalcurtains.storemanagement.model.Store;
 import com.royalcurtains.storemanagement.model.User;
+import com.royalcurtains.storemanagement.repository.InventoryMovementRepository;
+import com.royalcurtains.storemanagement.repository.InventoryProductRepository;
 import com.royalcurtains.storemanagement.repository.OrderItemFabricRepository;
 import com.royalcurtains.storemanagement.repository.OrderItemRepository;
 import com.royalcurtains.storemanagement.repository.OrderRepository;
@@ -23,6 +28,7 @@ import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -32,6 +38,8 @@ public class OrderItemController {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final OrderItemFabricRepository fabricRepository;
+    private final InventoryProductRepository inventoryProductRepository;
+    private final InventoryMovementRepository inventoryMovementRepository;
     private final UserRepository userRepository;
     private final StoreAccessService storeAccessService;
 
@@ -39,12 +47,16 @@ public class OrderItemController {
             OrderRepository orderRepository,
             OrderItemRepository orderItemRepository,
             OrderItemFabricRepository fabricRepository,
+            InventoryProductRepository inventoryProductRepository,
+            InventoryMovementRepository inventoryMovementRepository,
             UserRepository userRepository,
             StoreAccessService storeAccessService) {
 
         this.orderRepository = orderRepository;
         this.orderItemRepository = orderItemRepository;
         this.fabricRepository = fabricRepository;
+        this.inventoryProductRepository = inventoryProductRepository;
+        this.inventoryMovementRepository = inventoryMovementRepository;
         this.userRepository = userRepository;
         this.storeAccessService = storeAccessService;
     }
@@ -90,6 +102,13 @@ public class OrderItemController {
                 "tailors",
                 findTailorsForStore(order.getStore())
         );
+        model.addAttribute(
+                "inventoryProducts",
+                inventoryProductRepository
+                        .findByStoreIdAndActiveTrueOrderByProductNameAsc(
+                                order.getStore().getId()
+                        )
+        );
 
         return "order-item-form";
     }
@@ -110,10 +129,14 @@ public class OrderItemController {
             @RequestParam(required = false) String color,
             @RequestParam(required = false) String fabricNotes,
             @RequestParam(required = false) String requiredCompletionDate,
+            @RequestParam(required = false) List<Long> inventoryProductIds,
+            @RequestParam(required = false) List<BigDecimal> estimatedMeterages,
             Principal principal) {
 
         Order order = findOrder(orderId);
         checkStoreAccess(order, principal);
+
+        User currentUser = findUser(principal);
 
         OrderItem item = new OrderItem();
 
@@ -136,7 +159,27 @@ public class OrderItemController {
 
         assignTailor(item, tailorId, order);
 
+        validateInventoryRows(
+                inventoryProductIds,
+                estimatedMeterages
+        );
+
+        validateInventoryAvailability(
+                order,
+                inventoryProductIds,
+                estimatedMeterages
+        );
+
         OrderItem savedItem = orderItemRepository.save(item);
+
+        addInventoryUsages(
+                savedItem,
+                order,
+                inventoryProductIds,
+                estimatedMeterages,
+                tailorId != null,
+                currentUser
+        );
 
         if (fabricName != null && !fabricName.isBlank()) {
 
@@ -168,6 +211,7 @@ public class OrderItemController {
 
         verifyItemBelongsToOrder(item, order);
         rejectCompletedItem(item);
+        rejectAlreadySentItem(item);
 
         model.addAttribute("order", order);
         model.addAttribute("item", item);
@@ -191,15 +235,262 @@ public class OrderItemController {
         checkStoreAccess(order, principal);
 
         OrderItem item = findItem(itemId);
+        User currentUser = findUser(principal);
 
         verifyItemBelongsToOrder(item, order);
         rejectCompletedItem(item);
+        rejectAlreadySentItem(item);
 
         assignTailor(item, tailorId, order);
 
-        orderItemRepository.save(item);
+        OrderItem savedItem = orderItemRepository.save(item);
+
+        if (tailorId != null) {
+            validateExistingUsageAvailability(savedItem);
+            deductExistingUsages(savedItem, order, currentUser);
+        }
 
         return "redirect:/orders/" + orderId + "/items";
+    }
+
+    private void addInventoryUsages(
+            OrderItem item,
+            Order order,
+            List<Long> productIds,
+            List<BigDecimal> meterages,
+            boolean deductNow,
+            User currentUser) {
+
+        if (productIds == null || productIds.isEmpty()) {
+            return;
+        }
+
+        for (int index = 0; index < productIds.size(); index++) {
+
+            Long productId = productIds.get(index);
+            BigDecimal meterage = meterages.get(index);
+
+            InventoryProduct product =
+                    findInventoryProduct(
+                            productId,
+                            order.getStore()
+                    );
+
+            OrderItemInventoryUsage usage =
+                    new OrderItemInventoryUsage();
+
+            usage.setOrderItem(item);
+            usage.setInventoryProduct(product);
+            usage.setEstimatedMeterage(meterage);
+
+            if (deductNow) {
+                deductInventory(
+                        product,
+                        meterage,
+                        order,
+                        currentUser
+                );
+
+                usage.setInventoryDeducted(true);
+                usage.setInventoryDeductedAt(LocalDateTime.now());
+                usage.setDeductedBy(currentUser);
+            }
+
+            item.getInventoryUsages().add(usage);
+        }
+
+        orderItemRepository.save(item);
+    }
+
+    private void deductExistingUsages(
+            OrderItem item,
+            Order order,
+            User currentUser) {
+
+        for (OrderItemInventoryUsage usage
+                : item.getInventoryUsages()) {
+
+            if (usage.isInventoryDeducted()) {
+                continue;
+            }
+
+            InventoryProduct product =
+                    usage.getInventoryProduct();
+
+            BigDecimal meterage =
+                    usage.getEstimatedMeterage();
+
+            deductInventory(
+                    product,
+                    meterage,
+                    order,
+                    currentUser
+            );
+
+            usage.setInventoryDeducted(true);
+            usage.setInventoryDeductedAt(LocalDateTime.now());
+            usage.setDeductedBy(currentUser);
+        }
+
+        orderItemRepository.save(item);
+    }
+
+    private void deductInventory(
+            InventoryProduct product,
+            BigDecimal meterage,
+            Order order,
+            User currentUser) {
+
+        BigDecimal available = product.getMeterage();
+
+        if (available == null) {
+            available = BigDecimal.ZERO;
+        }
+
+        if (meterage.compareTo(available) > 0) {
+            throw new IllegalArgumentException(
+                    "Not enough inventory for "
+                            + product.getProductName()
+                            + ". Available: "
+                            + available
+                            + " meters."
+            );
+        }
+
+        product.setMeterage(available.subtract(meterage));
+        product.setLastEditedBy(currentUser);
+        product.setLastEditedAt(LocalDateTime.now());
+
+        inventoryProductRepository.save(product);
+
+        InventoryMovement movement = new InventoryMovement();
+        movement.setProduct(product);
+        movement.setMovementType("REMOVE");
+        movement.setQuantity(meterage);
+        movement.setReason(
+                "Used for order " + order.getOrderNumber()
+        );
+        movement.setRecordedBy(currentUser);
+
+        inventoryMovementRepository.save(movement);
+    }
+
+    private void validateInventoryAvailability(
+            Order order,
+            List<Long> productIds,
+            List<BigDecimal> meterages) {
+
+        if (productIds == null || productIds.isEmpty()) {
+            return;
+        }
+
+        for (int index = 0; index < productIds.size(); index++) {
+
+            InventoryProduct product =
+                    findInventoryProduct(
+                            productIds.get(index),
+                            order.getStore()
+                    );
+
+            BigDecimal available = product.getMeterage();
+
+            if (available == null) {
+                available = BigDecimal.ZERO;
+            }
+
+            if (meterages.get(index).compareTo(available) > 0) {
+                throw new IllegalArgumentException(
+                        "Not enough inventory for "
+                                + product.getProductName()
+                                + ". Available: "
+                                + available
+                                + " meters."
+                );
+            }
+        }
+    }
+
+    private void validateExistingUsageAvailability(
+            OrderItem item) {
+
+        for (OrderItemInventoryUsage usage
+                : item.getInventoryUsages()) {
+
+            if (usage.isInventoryDeducted()) {
+                continue;
+            }
+
+            InventoryProduct product =
+                    usage.getInventoryProduct();
+
+            BigDecimal available = product.getMeterage();
+
+            if (available == null) {
+                available = BigDecimal.ZERO;
+            }
+
+            if (usage.getEstimatedMeterage()
+                    .compareTo(available) > 0) {
+
+                throw new IllegalArgumentException(
+                        "Not enough inventory for "
+                                + product.getProductName()
+                                + ". Available: "
+                                + available
+                                + " meters."
+                );
+            }
+        }
+    }
+
+    private void validateInventoryRows(
+            List<Long> productIds,
+            List<BigDecimal> meterages) {
+
+        List<Long> safeProductIds = productIds == null
+                ? Collections.emptyList()
+                : productIds;
+
+        List<BigDecimal> safeMeterages = meterages == null
+                ? Collections.emptyList()
+                : meterages;
+
+        if (safeProductIds.size() != safeMeterages.size()) {
+            throw new IllegalArgumentException(
+                    "Each selected product must have an estimated meterage"
+            );
+        }
+
+        for (int index = 0; index < safeMeterages.size(); index++) {
+
+            BigDecimal meterage = safeMeterages.get(index);
+
+            if (safeProductIds.get(index) == null) {
+                throw new IllegalArgumentException(
+                        "Please select an inventory product"
+                );
+            }
+
+            if (meterage == null
+                    || meterage.compareTo(BigDecimal.ZERO) <= 0) {
+                throw new IllegalArgumentException(
+                        "Estimated meterage must be greater than zero"
+                );
+            }
+        }
+    }
+
+    private InventoryProduct findInventoryProduct(
+            Long productId,
+            Store store) {
+
+        return inventoryProductRepository
+                .findByIdAndStoreId(productId, store.getId())
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Selected inventory product was not found"
+                        )
+                );
     }
 
     private void assignTailor(
@@ -215,7 +506,9 @@ public class OrderItemController {
 
         User tailor = userRepository.findById(tailorId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Tailor not found")
+                        new IllegalArgumentException(
+                                "Tailor not found"
+                        )
                 );
 
         if (tailor.getRole() != Role.TAILOR) {
@@ -255,6 +548,14 @@ public class OrderItemController {
         }
     }
 
+    private void rejectAlreadySentItem(OrderItem item) {
+        if (item.getReceivedAt() != null) {
+            throw new IllegalStateException(
+                    "This work was already sent to the tailor"
+            );
+        }
+    }
+
     private List<User> findTailorsForStore(Store store) {
         return userRepository.findByRoleAndAssignedStoreId(
                 Role.TAILOR,
@@ -265,7 +566,9 @@ public class OrderItemController {
     private Order findOrder(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Order not found")
+                        new IllegalArgumentException(
+                                "Order not found"
+                        )
                 );
     }
 
@@ -281,7 +584,9 @@ public class OrderItemController {
     private User findUser(Principal principal) {
         return userRepository.findByUsername(principal.getName())
                 .orElseThrow(() ->
-                        new IllegalArgumentException("User not found")
+                        new IllegalArgumentException(
+                                "User not found"
+                        )
                 );
     }
 

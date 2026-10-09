@@ -2,6 +2,7 @@ package com.royalcurtains.storemanagement.model;
 
 import jakarta.persistence.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -26,12 +27,12 @@ public class OrderItem {
     @Column(length = 100)
     private String roomName;
 
-    // All measurements are recorded in centimeters.
+    // Measurements are recorded in centimeters.
     @Column(precision = 10, scale = 2)
-    private java.math.BigDecimal width;
+    private BigDecimal width;
 
     @Column(precision = 10, scale = 2)
-    private java.math.BigDecimal height;
+    private BigDecimal height;
 
     @Column(nullable = false)
     private Integer quantity;
@@ -47,23 +48,40 @@ public class OrderItem {
     private User assignedTailor;
 
     // The date by which the tailor must complete the work.
-    @Column
     private LocalDate requiredCompletionDate;
 
-    // Added automatically when the work is assigned to a tailor.
-    @Column
+    // Added when the work is assigned to a tailor.
     private LocalDateTime receivedAt;
 
-    // Added automatically when the tailor marks the work as completed.
-    @Column
+    // Added when the tailor completes the work.
     private LocalDateTime completedAt;
 
     // NOT_STARTED, RECEIVED, IN_PROGRESS, COMPLETED
     @Column(nullable = false, length = 30)
     private String workStatus;
 
-    @OneToMany(mappedBy = "orderItem", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(
+            mappedBy = "orderItem",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
     private List<OrderItemFabric> fabrics = new ArrayList<>();
+
+    /*
+     * Each order item can use several inventory products.
+     *
+     * Example:
+     * - Velvet: 12 meters
+     * - Lining: 8 meters
+     * - Decorative fabric: 5 meters
+     */
+    @OneToMany(
+            mappedBy = "orderItem",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<OrderItemInventoryUsage> inventoryUsages =
+            new ArrayList<>();
 
     public OrderItem() {
         this.quantity = 1;
@@ -98,19 +116,19 @@ public class OrderItem {
         this.roomName = roomName;
     }
 
-    public java.math.BigDecimal getWidth() {
+    public BigDecimal getWidth() {
         return width;
     }
 
-    public void setWidth(java.math.BigDecimal width) {
+    public void setWidth(BigDecimal width) {
         this.width = width;
     }
 
-    public java.math.BigDecimal getHeight() {
+    public BigDecimal getHeight() {
         return height;
     }
 
-    public void setHeight(java.math.BigDecimal height) {
+    public void setHeight(BigDecimal height) {
         this.height = height;
     }
 
@@ -150,7 +168,8 @@ public class OrderItem {
         return requiredCompletionDate;
     }
 
-    public void setRequiredCompletionDate(LocalDate requiredCompletionDate) {
+    public void setRequiredCompletionDate(
+            LocalDate requiredCompletionDate) {
         this.requiredCompletionDate = requiredCompletionDate;
     }
 
@@ -184,5 +203,14 @@ public class OrderItem {
 
     public void setFabrics(List<OrderItemFabric> fabrics) {
         this.fabrics = fabrics;
+    }
+
+    public List<OrderItemInventoryUsage> getInventoryUsages() {
+        return inventoryUsages;
+    }
+
+    public void setInventoryUsages(
+            List<OrderItemInventoryUsage> inventoryUsages) {
+        this.inventoryUsages = inventoryUsages;
     }
 }

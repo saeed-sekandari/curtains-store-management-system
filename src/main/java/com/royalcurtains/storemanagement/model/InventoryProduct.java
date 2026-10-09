@@ -18,6 +18,11 @@ public class InventoryProduct {
 
     private String color;
 
+    // Total amount originally added to inventory.
+    @Column(precision = 12, scale = 2)
+    private BigDecimal originalMeterage;
+
+    // Amount currently available.
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal meterage;
 
@@ -47,6 +52,8 @@ public class InventoryProduct {
     public InventoryProduct() {
         this.active = true;
         this.addedAt = LocalDateTime.now();
+        this.originalMeterage = BigDecimal.ZERO;
+        this.meterage = BigDecimal.ZERO;
     }
 
     public Long getId() {
@@ -67,6 +74,14 @@ public class InventoryProduct {
 
     public void setColor(String color) {
         this.color = color;
+    }
+
+    public BigDecimal getOriginalMeterage() {
+        return originalMeterage;
+    }
+
+    public void setOriginalMeterage(BigDecimal originalMeterage) {
+        this.originalMeterage = originalMeterage;
     }
 
     public BigDecimal getMeterage() {
