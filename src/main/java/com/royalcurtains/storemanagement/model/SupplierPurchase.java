@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "supplier_purchases")
@@ -19,14 +21,22 @@ public class SupplierPurchase {
 
     private LocalDateTime purchaseDate;
 
+    @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal amountPaid;
 
+    @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal remainingDebt;
 
+    @Column(nullable = false, length = 10)
     private String currency;
 
+    /*
+     * Kept for older purchase records.
+     * New purchases will use purchaseItems.
+     */
     @Column(columnDefinition = "TEXT")
     private String productInformation;
 
@@ -36,6 +46,14 @@ public class SupplierPurchase {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "recorded_by_id", nullable = false)
     private User recordedBy;
+
+    @OneToMany(
+            mappedBy = "purchase",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<SupplierPurchaseItem> purchaseItems =
+            new ArrayList<>();
 
     public SupplierPurchase() {
         this.purchaseDate = LocalDateTime.now();
@@ -119,5 +137,14 @@ public class SupplierPurchase {
 
     public void setRecordedBy(User recordedBy) {
         this.recordedBy = recordedBy;
+    }
+
+    public List<SupplierPurchaseItem> getPurchaseItems() {
+        return purchaseItems;
+    }
+
+    public void setPurchaseItems(
+            List<SupplierPurchaseItem> purchaseItems) {
+        this.purchaseItems = purchaseItems;
     }
 }

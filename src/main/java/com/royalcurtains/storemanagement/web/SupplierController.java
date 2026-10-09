@@ -1,11 +1,13 @@
 package com.royalcurtains.storemanagement.web;
 
+import com.royalcurtains.storemanagement.model.InventoryProduct;
 import com.royalcurtains.storemanagement.model.Role;
 import com.royalcurtains.storemanagement.model.Store;
 import com.royalcurtains.storemanagement.model.Supplier;
 import com.royalcurtains.storemanagement.model.SupplierPayment;
 import com.royalcurtains.storemanagement.model.SupplierPurchase;
 import com.royalcurtains.storemanagement.model.User;
+import com.royalcurtains.storemanagement.repository.InventoryProductRepository;
 import com.royalcurtains.storemanagement.repository.StoreRepository;
 import com.royalcurtains.storemanagement.repository.SupplierPaymentRepository;
 import com.royalcurtains.storemanagement.repository.SupplierPurchaseRepository;
@@ -34,6 +36,7 @@ public class SupplierController {
     private final SupplierRepository supplierRepository;
     private final SupplierPurchaseRepository purchaseRepository;
     private final SupplierPaymentRepository paymentRepository;
+    private final InventoryProductRepository inventoryProductRepository;
     private final StoreRepository storeRepository;
     private final UserRepository userRepository;
     private final StoreAccessService storeAccessService;
@@ -42,6 +45,7 @@ public class SupplierController {
             SupplierRepository supplierRepository,
             SupplierPurchaseRepository purchaseRepository,
             SupplierPaymentRepository paymentRepository,
+            InventoryProductRepository inventoryProductRepository,
             StoreRepository storeRepository,
             UserRepository userRepository,
             StoreAccessService storeAccessService) {
@@ -49,6 +53,7 @@ public class SupplierController {
         this.supplierRepository = supplierRepository;
         this.purchaseRepository = purchaseRepository;
         this.paymentRepository = paymentRepository;
+        this.inventoryProductRepository = inventoryProductRepository;
         this.storeRepository = storeRepository;
         this.userRepository = userRepository;
         this.storeAccessService = storeAccessService;
@@ -84,6 +89,12 @@ public class SupplierController {
         List<SupplierPayment> allPayments =
                 paymentRepository
                         .findBySupplierStoreIdOrderByPaymentDateDesc(
+                                selectedStore.getId()
+                        );
+
+        List<InventoryProduct> inventoryProducts =
+                inventoryProductRepository
+                        .findByStoreIdAndActiveTrueOrderByProductNameAsc(
                                 selectedStore.getId()
                         );
 
@@ -184,7 +195,8 @@ public class SupplierController {
                         owedAmounts.getOrDefault(
                                         entry.getKey(),
                                         BigDecimal.ZERO
-                                ).subtract(entry.getValue())
+                                )
+                                .subtract(entry.getValue())
                                 .max(BigDecimal.ZERO)
                 );
             }
@@ -205,6 +217,10 @@ public class SupplierController {
         model.addAttribute("selectedSupplier", selectedSupplier);
         model.addAttribute("purchases", displayedPurchases);
         model.addAttribute("payments", displayedPayments);
+        model.addAttribute(
+                "inventoryProducts",
+                inventoryProducts
+        );
         model.addAttribute(
                 "totalPurchasedBySupplier",
                 totalPurchasedBySupplier

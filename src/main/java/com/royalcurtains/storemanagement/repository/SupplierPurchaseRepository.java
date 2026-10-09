@@ -11,7 +11,9 @@ public interface SupplierPurchaseRepository
 
     @EntityGraph(attributePaths = {
             "supplier",
-            "recordedBy"
+            "recordedBy",
+            "purchaseItems",
+            "purchaseItems.inventoryProduct"
     })
     List<SupplierPurchase> findBySupplierIdOrderByPurchaseDateDesc(
             Long supplierId
@@ -19,16 +21,19 @@ public interface SupplierPurchaseRepository
 
     @EntityGraph(attributePaths = {
             "supplier",
-            "recordedBy"
+            "recordedBy",
+            "purchaseItems",
+            "purchaseItems.inventoryProduct"
     })
-    List<SupplierPurchase>
-    findBySupplierStoreIdOrderByPurchaseDateDesc(
+    List<SupplierPurchase> findBySupplierStoreIdOrderByPurchaseDateDesc(
             Long storeId
     );
 
     @EntityGraph(attributePaths = {
             "supplier",
-            "recordedBy"
+            "recordedBy",
+            "purchaseItems",
+            "purchaseItems.inventoryProduct"
     })
     List<SupplierPurchase> findBySupplierIdOrderByPurchaseDateAsc(
             Long supplierId
