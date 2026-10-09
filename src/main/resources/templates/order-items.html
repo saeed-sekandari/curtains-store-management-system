@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>Order Details</title>
 
     <style>
@@ -27,65 +26,58 @@
 
         .topbar h1 {
             margin: 0;
-            font-size: 1.4rem;
         }
 
         main {
-            max-width: 1300px;
+            max-width: 1450px;
             margin: 35px auto;
             padding: 0 20px;
         }
 
         .card {
             background: white;
-            padding: 28px;
+            padding: 25px;
             border-radius: 14px;
-            box-shadow: 0 5px 18px rgba(25, 53, 87, 0.1);
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
+            overflow-x: auto;
         }
 
         h2 {
-            margin-top: 0;
             color: #173b68;
         }
 
         .actions {
-            display: flex;
-            gap: 12px;
-            margin: 24px 0;
-            flex-wrap: wrap;
+            margin: 20px 0;
         }
 
-        .button {
+        a {
             display: inline-block;
-            padding: 11px 17px;
+            padding: 10px 15px;
             border-radius: 8px;
-            color: white;
-            background: #d69b2d;
             text-decoration: none;
         }
 
-        .button:hover {
-            background: #b9801e;
+        .button {
+            background: #d69b2d;
+            color: white;
         }
 
         .back-button {
-            background: #64748b;
-        }
-
-        .table-container {
-            overflow-x: auto;
+            background: #e2e8f0;
+            color: #172033;
+            margin-left: 8px;
         }
 
         table {
             width: 100%;
-            min-width: 1250px;
+            min-width: 1350px;
             border-collapse: collapse;
             margin-top: 20px;
         }
 
         th,
         td {
-            padding: 13px 10px;
+            padding: 12px;
             border-bottom: 1px solid #e2e8f0;
             text-align: left;
             vertical-align: top;
@@ -94,47 +86,55 @@
         th {
             background: #eef3f8;
             color: #173b68;
+            white-space: nowrap;
         }
 
-        .status {
-            display: inline-block;
-            padding: 6px 9px;
+        select {
+            width: 175px;
+            padding: 8px;
+            border: 1px solid #cbd5e1;
             border-radius: 6px;
-            font-size: 0.85rem;
+            background: white;
+        }
+
+        .save-button {
+            margin-top: 8px;
+            padding: 7px 12px;
+            border: 0;
+            border-radius: 6px;
+            background: #173b68;
+            color: white;
+            cursor: pointer;
+        }
+
+        .save-button:hover {
+            background: #0f2949;
+        }
+
+        .locked {
+            color: #16803c;
             font-weight: bold;
         }
 
-        .received {
-            background: #dbeafe;
-            color: #1e40af;
-        }
-
-        .in-progress {
-            background: #fef3c7;
-            color: #92400e;
+        .status {
+            font-weight: bold;
         }
 
         .completed {
-            background: #dcfce7;
-            color: #166534;
+            color: #16803c;
+        }
+
+        .in-progress {
+            color: #b26a00;
         }
 
         .not-started {
-            background: #f1f5f9;
-            color: #475569;
-        }
-
-        .fabric {
-            margin-bottom: 8px;
-        }
-
-        .fabric:last-child {
-            margin-bottom: 0;
-        }
-
-        .empty-message {
-            padding: 20px 0;
             color: #667085;
+        }
+
+        .empty {
+            color: #667085;
+            padding: 20px 0;
         }
     </style>
 </head>
@@ -166,178 +166,239 @@
 
         <div class="actions">
 
-            <!-- Tailors can view details but cannot add new work. -->
             <a class="button"
-               th:if="${currentRole != 'TAILOR'
-                       and order.status != 'CANCELLED'}"
+               th:if="${currentRole != 'TAILOR'}"
                th:href="@{/orders/{orderId}/items/new(orderId=${order.id})}">
                 Add Product or Measurement
             </a>
 
-            <a class="button back-button"
+            <a class="back-button"
                th:if="${currentRole == 'TAILOR'}"
-               href="/tailor-dashboard">
+               th:href="@{/tailor-dashboard}">
                 Back to Tailor Dashboard
             </a>
 
-            <a class="button back-button"
+            <a class="back-button"
                th:if="${currentRole != 'TAILOR'}"
                th:href="@{/orders(store=${order.store.code})}">
                 Back to Orders
             </a>
+
         </div>
 
-        <div class="empty-message"
-             th:if="${items == null or #lists.isEmpty(items)}">
+        <p class="empty" th:if="${#lists.isEmpty(items)}">
             No products or measurements have been added to this order yet.
-        </div>
+        </p>
 
-        <div class="table-container"
-             th:if="${items != null and !#lists.isEmpty(items)}">
+        <table th:if="${!#lists.isEmpty(items)}">
 
-            <table>
-                <thead>
-                <tr>
-                    <th>Product</th>
-                    <th>Room</th>
-                    <th>Measurements</th>
-                    <th>Quantity</th>
-                    <th>Fabric and Color</th>
-                    <th>Design</th>
-                    <th>Assigned Tailor</th>
-                    <th>Received Date</th>
-                    <th>Required Completion Date</th>
-                    <th>Work Status</th>
-                    <th>Completed Date</th>
-                    <th>Special Notes</th>
-                </tr>
-                </thead>
+            <thead>
+            <tr>
+                <th>Product</th>
+                <th>Room</th>
+                <th>Measurements</th>
+                <th>Quantity</th>
+                <th>Fabric and Color</th>
+                <th>Design</th>
+                <th>Assigned Tailor</th>
+                <th>Received Date</th>
+                <th>Required Completion Date</th>
+                <th>Work Status</th>
+                <th>Completed Date</th>
+                <th>Special Notes</th>
+            </tr>
+            </thead>
 
-                <tbody>
-                <tr th:each="item : ${items}">
+            <tbody>
 
-                    <td th:text="${item.productType}">
-                        CURTAIN
-                    </td>
+            <tr th:each="item : ${items}">
 
-                    <td th:text="${item.roomName != null and !item.roomName.isBlank()
-                                  ? item.roomName
-                                  : 'Not specified'}">
-                        Saloon
-                    </td>
+                <td th:text="${item.productType}">
+                    CURTAIN
+                </td>
 
-                    <td>
-                        <span th:if="${item.width != null}"
-                              th:text="${item.width + ' cm wide'}">
-                            300 cm wide
-                        </span>
+                <td th:text="${item.roomName != null and !item.roomName.isBlank()
+                              ? item.roomName : 'None'}">
+                    Bedroom
+                </td>
 
-                        <br th:if="${item.width != null and item.height != null}">
+                <td>
+                    <span th:if="${item.width != null}">
+                        <span th:text="${item.width}">250</span> cm wide
+                    </span>
 
-                        <span th:if="${item.height != null}"
-                              th:text="${item.height + ' cm high'}">
-                            280 cm high
-                        </span>
+                    <br th:if="${item.width != null and item.height != null}">
 
-                        <span th:if="${item.width == null and item.height == null}">
-                            Not specified
-                        </span>
-                    </td>
+                    <span th:if="${item.height != null}">
+                        <span th:text="${item.height}">270</span> cm high
+                    </span>
 
-                    <td th:text="${item.quantity}">
-                        4
-                    </td>
+                    <span th:if="${item.width == null and item.height == null}">
+                        Not provided
+                    </span>
+                </td>
 
-                    <td>
-                        <div class="fabric"
-                             th:if="${item.fabrics != null and !#lists.isEmpty(item.fabrics)}"
-                             th:each="fabric : ${item.fabrics}">
+                <td th:text="${item.quantity}">
+                    1
+                </td>
 
-                            <strong th:text="${fabric.fabricName}">
-                                Jali Nakhi
-                            </strong>
+                <td>
+                    <span th:if="${item.fabrics != null and !item.fabrics.isEmpty()}"
+                          th:each="fabric : ${item.fabrics}">
 
-                            <span th:if="${fabric.color != null and !fabric.color.isBlank()}"
-                                  th:text="${' - ' + fabric.color}">
-                                - Green
+                        <strong th:text="${fabric.fabricName}">
+                            Fabric
+                        </strong>
+
+                        <span th:if="${fabric.color != null and !fabric.color.isBlank()}">
+                            -
+                            <span th:text="${fabric.color}">
+                                Color
                             </span>
-
-                            <div th:if="${fabric.notes != null and !fabric.notes.isBlank()}"
-                                 th:text="${fabric.notes}">
-                                Fabric notes
-                            </div>
-                        </div>
-
-                        <span th:if="${item.fabrics == null or #lists.isEmpty(item.fabrics)}">
-                            Not specified
                         </span>
-                    </td>
 
-                    <td th:text="${item.design != null and !item.design.isBlank()
-                                  ? item.design
-                                  : 'Not specified'}">
-                        Ringi Sada
-                    </td>
+                        <br>
+                    </span>
 
-                    <td>
+                    <span th:if="${item.fabrics == null or item.fabrics.isEmpty()}">
+                        Not provided
+                    </span>
+                </td>
+
+                <td th:text="${item.design != null and !item.design.isBlank()
+                              ? item.design : 'None'}">
+                    None
+                </td>
+
+                <td>
+
+                    <!-- Completed assignments can no longer be changed. -->
+                    <span class="locked"
+                          th:if="${item.workStatus == 'COMPLETED'}">
+
                         <span th:if="${item.assignedTailor != null}"
                               th:text="${item.assignedTailor.fullName}">
-                            Mohammad
+                            Tailor name
                         </span>
 
                         <span th:if="${item.assignedTailor == null}">
                             Not assigned
                         </span>
-                    </td>
 
-                    <td>
-                        <span th:if="${item.receivedAt != null}"
-                              th:text="${#temporals.format(item.receivedAt, 'yyyy-MM-dd HH:mm')}">
-                            2026-10-08 13:42
-                        </span>
+                        <br>
 
-                        <span th:if="${item.receivedAt == null}">
-                            Not received
-                        </span>
-                    </td>
+                        <small>
+                            Locked — Completed
+                        </small>
+                    </span>
 
-                    <td th:text="${item.requiredCompletionDate != null
-                                  ? item.requiredCompletionDate
-                                  : 'Not set'}">
-                        2026-10-15
-                    </td>
+                    <!-- Employees and managers can change unfinished assignments. -->
+                    <form th:if="${currentRole != 'TAILOR'
+                                  and item.workStatus != 'COMPLETED'}"
+                          th:action="@{/orders/{orderId}/items/{itemId}/assignment(
+                                      orderId=${order.id},
+                                      itemId=${item.id})}"
+                          method="post">
 
-                    <td>
-                        <span class="status"
-                              th:classappend="${item.workStatus == 'RECEIVED'} ? ' received' :
-                                              (${item.workStatus == 'IN_PROGRESS'} ? ' in-progress' :
-                                              (${item.workStatus == 'COMPLETED'} ? ' completed' : ' not-started'))"
-                              th:text="${item.workStatus}">
-                            COMPLETED
-                        </span>
-                    </td>
+                        <input type="hidden"
+                               th:name="${_csrf.parameterName}"
+                               th:value="${_csrf.token}">
 
-                    <td>
-                        <span th:if="${item.completedAt != null}"
-                              th:text="${#temporals.format(item.completedAt, 'yyyy-MM-dd HH:mm')}">
-                            2026-10-08 13:43
-                        </span>
+                        <select name="tailorId">
 
-                        <span th:if="${item.completedAt == null}">
-                            Not completed
-                        </span>
-                    </td>
+                            <option value="">
+                                Not assigned
+                            </option>
 
-                    <td th:text="${item.specialNotes != null and !item.specialNotes.isBlank()
-                                  ? item.specialNotes
-                                  : 'None'}">
-                        Special instructions
-                    </td>
+                            <option th:each="tailor : ${tailors}"
+                                    th:value="${tailor.id}"
+                                    th:text="${tailor.fullName}"
+                                    th:selected="${item.assignedTailor != null
+                                                  and item.assignedTailor.id == tailor.id}">
+                                Tailor name
+                            </option>
 
-                </tr>
-                </tbody>
-            </table>
-        </div>
+                        </select>
+
+                        <br>
+
+                        <button class="save-button"
+                                type="submit">
+                            Save
+                        </button>
+
+                    </form>
+
+                    <!-- Tailors only see the assigned tailor. -->
+                    <span th:if="${currentRole == 'TAILOR'
+                                  and item.workStatus != 'COMPLETED'
+                                  and item.assignedTailor != null}"
+                          th:text="${item.assignedTailor.fullName}">
+                        Tailor name
+                    </span>
+
+                    <span th:if="${currentRole == 'TAILOR'
+                                  and item.workStatus != 'COMPLETED'
+                                  and item.assignedTailor == null}">
+                        Not assigned
+                    </span>
+
+                </td>
+
+                <td>
+                    <span th:if="${item.receivedAt != null}"
+                          th:text="${#temporals.format(item.receivedAt, 'yyyy-MM-dd HH:mm')}">
+                        2026-10-08 14:00
+                    </span>
+
+                    <span th:if="${item.receivedAt == null}">
+                        Not received
+                    </span>
+                </td>
+
+                <td>
+                    <span th:if="${item.requiredCompletionDate != null}"
+                          th:text="${item.requiredCompletionDate}">
+                        2026-10-29
+                    </span>
+
+                    <span th:if="${item.requiredCompletionDate == null}">
+                        Not provided
+                    </span>
+                </td>
+
+                <td>
+                    <span class="status"
+                          th:classappend="${item.workStatus == 'COMPLETED'
+                              ? ' completed'
+                              : item.workStatus == 'IN_PROGRESS'
+                              ? ' in-progress'
+                              : ' not-started'}"
+                          th:text="${item.workStatus}">
+                        NOT_STARTED
+                    </span>
+                </td>
+
+                <td>
+                    <span th:if="${item.completedAt != null}"
+                          th:text="${#temporals.format(item.completedAt, 'yyyy-MM-dd HH:mm')}">
+                        2026-10-08 15:00
+                    </span>
+
+                    <span th:if="${item.completedAt == null}">
+                        Not completed
+                    </span>
+                </td>
+
+                <td th:text="${item.specialNotes != null and !item.specialNotes.isBlank()
+                              ? item.specialNotes : 'None'}">
+                    None
+                </td>
+
+            </tr>
+
+            </tbody>
+        </table>
 
     </section>
 </main>

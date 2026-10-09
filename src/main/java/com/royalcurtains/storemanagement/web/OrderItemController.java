@@ -12,7 +12,6 @@ import com.royalcurtains.storemanagement.repository.OrderRepository;
 import com.royalcurtains.storemanagement.repository.UserRepository;
 import com.royalcurtains.storemanagement.security.StoreAccessService;
 import jakarta.transaction.Transactional;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,6 +24,7 @@ import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Controller
 public class OrderItemController {
@@ -49,7 +49,6 @@ public class OrderItemController {
         this.storeAccessService = storeAccessService;
     }
 
-    // Shows complete order details for employees, managers, and tailors.
     @Transactional
     @GetMapping("/orders/{orderId}/items")
     public String orderItems(
@@ -58,26 +57,24 @@ public class OrderItemController {
             Principal principal) {
 
         Order order = findOrder(orderId);
-
         checkStoreAccess(order, principal);
 
-        User currentUser = userRepository
-                .findByUsername(principal.getName())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("User not found"));
+        User currentUser = findUser(principal);
 
         model.addAttribute("order", order);
         model.addAttribute(
                 "items",
-                orderItemRepository.findByOrderId(orderId));
+                orderItemRepository.findByOrderId(orderId)
+        );
+        model.addAttribute("currentRole", currentUser.getRole().name());
         model.addAttribute(
-                "currentRole",
-                currentUser.getRole().name());
+                "tailors",
+                findTailorsForStore(order.getStore())
+        );
 
         return "order-items";
     }
 
-    // Opens the form for adding measurements and product information.
     @Transactional
     @GetMapping("/orders/{orderId}/items/new")
     public String newItem(
@@ -86,21 +83,17 @@ public class OrderItemController {
             Principal principal) {
 
         Order order = findOrder(orderId);
-
         checkStoreAccess(order, principal);
 
-        List<User> tailors = userRepository
-                .findByRoleAndAssignedStoreId(
-                        Role.TAILOR,
-                        order.getStore().getId());
-
         model.addAttribute("order", order);
-        model.addAttribute("tailors", tailors);
+        model.addAttribute(
+                "tailors",
+                findTailorsForStore(order.getStore())
+        );
 
         return "order-item-form";
     }
 
-    // Saves one product, measurements, and fabric information.
     @Transactional
     @PostMapping("/orders/{orderId}/items")
     public String saveItem(
@@ -116,13 +109,10 @@ public class OrderItemController {
             @RequestParam(required = false) String fabricName,
             @RequestParam(required = false) String color,
             @RequestParam(required = false) String fabricNotes,
-            @RequestParam
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate requiredCompletionDate,
+            @RequestParam(required = false) String requiredCompletionDate,
             Principal principal) {
 
         Order order = findOrder(orderId);
-
         checkStoreAccess(order, principal);
 
         OrderItem item = new OrderItem();
@@ -135,41 +125,21 @@ public class OrderItemController {
         item.setQuantity(quantity);
         item.setDesign(design);
         item.setSpecialNotes(specialNotes);
-        item.setRequiredCompletionDate(requiredCompletionDate);
 
-        if (tailorId != null) {
-            User tailor = userRepository.findById(tailorId)
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "Tailor not found"));
+        if (requiredCompletionDate != null
+                && !requiredCompletionDate.isBlank()) {
 
-            if (tailor.getRole() != Role.TAILOR) {
-                throw new IllegalArgumentException(
-                        "Selected user is not a tailor");
-            }
-
-            if (tailor.getAssignedStore() == null
-                    || !tailor.getAssignedStore()
-                    .getId()
-                    .equals(order.getStore().getId())) {
-
-                throw new IllegalArgumentException(
-                        "This tailor is not assigned to this store");
-            }
-
-            item.setAssignedTailor(tailor);
-
-            // Assigned work is automatically received.
-            item.setReceivedAt(LocalDateTime.now());
-            item.setWorkStatus("RECEIVED");
-
-        } else {
-            item.setWorkStatus("NOT_STARTED");
+            item.setRequiredCompletionDate(
+                    LocalDate.parse(requiredCompletionDate)
+            );
         }
+
+        assignTailor(item, tailorId, order);
 
         OrderItem savedItem = orderItemRepository.save(item);
 
         if (fabricName != null && !fabricName.isBlank()) {
+
             OrderItemFabric fabric = new OrderItemFabric();
 
             fabric.setOrderItem(savedItem);
@@ -183,20 +153,160 @@ public class OrderItemController {
         return "redirect:/orders/" + orderId + "/items";
     }
 
+    @Transactional
+    @GetMapping("/orders/{orderId}/items/{itemId}/edit")
+    public String editAssignment(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            Model model,
+            Principal principal) {
+
+        Order order = findOrder(orderId);
+        checkStoreAccess(order, principal);
+
+        OrderItem item = findItem(itemId);
+
+        verifyItemBelongsToOrder(item, order);
+        rejectCompletedItem(item);
+
+        model.addAttribute("order", order);
+        model.addAttribute("item", item);
+        model.addAttribute(
+                "tailors",
+                findTailorsForStore(order.getStore())
+        );
+
+        return "order-item-assignment-form";
+    }
+
+    @Transactional
+    @PostMapping("/orders/{orderId}/items/{itemId}/assignment")
+    public String updateAssignment(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId,
+            @RequestParam(required = false) Long tailorId,
+            Principal principal) {
+
+        Order order = findOrder(orderId);
+        checkStoreAccess(order, principal);
+
+        OrderItem item = findItem(itemId);
+
+        verifyItemBelongsToOrder(item, order);
+        rejectCompletedItem(item);
+
+        assignTailor(item, tailorId, order);
+
+        orderItemRepository.save(item);
+
+        return "redirect:/orders/" + orderId + "/items";
+    }
+
+    private void assignTailor(
+            OrderItem item,
+            Long tailorId,
+            Order order) {
+
+        if (tailorId == null) {
+            item.setAssignedTailor(null);
+            item.setWorkStatus("NOT_STARTED");
+            return;
+        }
+
+        User tailor = userRepository.findById(tailorId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException("Tailor not found")
+                );
+
+        if (tailor.getRole() != Role.TAILOR) {
+            throw new IllegalArgumentException(
+                    "The selected user is not a tailor"
+            );
+        }
+
+        if (tailor.getAssignedStore() == null
+                || !Objects.equals(
+                tailor.getAssignedStore().getId(),
+                order.getStore().getId())) {
+
+            throw new IllegalArgumentException(
+                    "The tailor must belong to the same store"
+            );
+        }
+
+        item.setAssignedTailor(tailor);
+
+        if (item.getReceivedAt() == null) {
+            item.setReceivedAt(LocalDateTime.now());
+        }
+
+        if (item.getWorkStatus() == null
+                || "NOT_STARTED".equals(item.getWorkStatus())) {
+
+            item.setWorkStatus("RECEIVED");
+        }
+    }
+
+    private void rejectCompletedItem(OrderItem item) {
+        if ("COMPLETED".equals(item.getWorkStatus())) {
+            throw new IllegalStateException(
+                    "Completed work cannot be reassigned"
+            );
+        }
+    }
+
+    private List<User> findTailorsForStore(Store store) {
+        return userRepository.findByRoleAndAssignedStoreId(
+                Role.TAILOR,
+                store.getId()
+        );
+    }
+
     private Order findOrder(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Order not found"));
+                        new IllegalArgumentException("Order not found")
+                );
+    }
+
+    private OrderItem findItem(Long itemId) {
+        return orderItemRepository.findById(itemId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Product or measurement not found"
+                        )
+                );
+    }
+
+    private User findUser(Principal principal) {
+        return userRepository.findByUsername(principal.getName())
+                .orElseThrow(() ->
+                        new IllegalArgumentException("User not found")
+                );
+    }
+
+    private void verifyItemBelongsToOrder(
+            OrderItem item,
+            Order order) {
+
+        if (item.getOrder() == null
+                || !Objects.equals(
+                item.getOrder().getId(),
+                order.getId())) {
+
+            throw new IllegalArgumentException(
+                    "This product does not belong to the selected order"
+            );
+        }
     }
 
     private void checkStoreAccess(
             Order order,
             Principal principal) {
 
-        Store store = order.getStore();
-
         storeAccessService.checkStoreAccess(
                 principal,
-                store.getCode());
+                order.getStore().getCode()
+        );
     }
 }
