@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Inventory</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 20px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        main {
+            max-width: 1200px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            margin-bottom: 22px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #173b68;
+        }
+
+        .store-name {
+            color: #536174;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        .button,
+        button {
+            border: 0;
+            border-radius: 8px;
+            padding: 11px 16px;
+            font-size: 0.95rem;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        .primary {
+            background: #d69b2d;
+            color: white;
+        }
+
+        .secondary {
+            background: #e2e8f0;
+            color: #172033;
+        }
+
+        .danger {
+            background: #b42318;
+            color: white;
+        }
+
+        .success {
+            background: #e8f7ee;
+            color: #166534;
+            padding: 13px;
+            border-radius: 8px;
+            margin-bottom: 18px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 950px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #eef3f8;
+            color: #173b68;
+        }
+
+        .muted {
+            color: #667085;
+        }
+
+        .small {
+            font-size: 0.88rem;
+        }
+
+        .inline-form {
+            display: inline;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+
+    <section class="card">
+        <h2>Inventory</h2>
+
+        <p class="store-name">
+            Store:
+            <strong th:text="${store.name}">
+                Store name
+            </strong>
+        </p>
+
+        <div class="actions">
+            <a class="button primary"
+               th:href="@{/inventory/new(store=${store.code})}">
+                Add Product
+            </a>
+
+            <a class="button secondary"
+               th:if="${currentRole == 'MANAGER'}"
+               th:href="@{/dashboard}">
+                Back to Dashboard
+            </a>
+
+            <a class="button secondary"
+               th:if="${currentRole == 'EMPLOYEE'}"
+               th:href="@{/employee-dashboard}">
+                Back to Dashboard
+            </a>
+        </div>
+
+        <p class="success"
+           th:if="${success}"
+           th:text="${success}">
+            Product saved successfully.
+        </p>
+
+        <p class="muted">
+            Employees can add and correct inventory records.
+            Managers can also deactivate products.
+        </p>
+    </section>
+
+    <section class="card">
+        <h2>Available Products</h2>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>Color</th>
+                    <th>Meterage</th>
+                    <th>Location</th>
+                    <th>Product Code</th>
+                    <th>Added By</th>
+                    <th>Date Added</th>
+                    <th>Last Edited</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+
+                <tbody>
+                <tr th:each="product : ${products}">
+                    <td th:text="${product.productName}">
+                        Velvet fabric
+                    </td>
+
+                    <td th:text="${product.color != null
+                                  ? product.color
+                                  : 'Not provided'}">
+                        Dark blue
+                    </td>
+
+                    <td>
+                        <span th:text="${product.meterage}">
+                            35
+                        </span>
+                        meters
+                    </td>
+
+                    <td th:text="${product.location != null
+                                  ? product.location
+                                  : 'Not provided'}">
+                        Back Room, Shelf B2
+                    </td>
+
+                    <td th:text="${product.productCode}">
+                        VEL-BLU-001
+                    </td>
+
+                    <td th:text="${product.addedBy.fullName}">
+                        Ahmad Rahimi
+                    </td>
+
+                    <td class="small"
+                        th:text="${#temporals.format(
+                            product.addedAt,
+                            'yyyy-MM-dd HH:mm'
+                        )}">
+                        2026-10-09 10:00
+                    </td>
+
+                    <td class="small">
+                        <span th:if="${product.lastEditedAt != null}">
+                            <span th:text="${#temporals.format(
+                                product.lastEditedAt,
+                                'yyyy-MM-dd HH:mm'
+                            )}">
+                                2026-10-09 11:00
+                            </span>
+
+                            <br>
+
+                            <span class="muted"
+                                  th:if="${product.lastEditedBy != null}"
+                                  th:text="|By ${product.lastEditedBy.fullName}|">
+                                By Ahmad Rahimi
+                            </span>
+                        </span>
+
+                        <span class="muted"
+                              th:if="${product.lastEditedAt == null}">
+                            Not edited
+                        </span>
+                    </td>
+
+                    <td>
+                        <a class="button secondary small"
+                           th:href="@{/inventory/{productId}/edit(
+                               productId=${product.id},
+                               store=${store.code}
+                           )}">
+                            Edit
+                        </a>
+
+                        <span th:if="${currentRole == 'MANAGER'}">
+                            <form class="inline-form"
+                                  th:action="@{/inventory/{productId}/deactivate(
+                                      productId=${product.id}
+                                  )}"
+                                  method="post">
+
+                                <input type="hidden"
+                                       name="storeCode"
+                                       th:value="${store.code}">
+
+                                <input type="hidden"
+                                       th:name="${_csrf.parameterName}"
+                                       th:value="${_csrf.token}">
+
+                                <button class="button danger small"
+                                        type="submit"
+                                        onclick="return confirm(
+                                            'Deactivate this product?'
+                                        );">
+                                    Deactivate
+                                </button>
+                            </form>
+                        </span>
+                    </td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(products)}">
+                    <td colspan="9" class="muted">
+                        No inventory products have been added yet.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+</body>
+</html>

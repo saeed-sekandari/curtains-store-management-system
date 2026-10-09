@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Edit Inventory Product</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 20px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        main {
+            max-width: 700px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 28px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, 0.1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #173b68;
+        }
+
+        .store-name,
+        .help-text {
+            color: #667085;
+        }
+
+        label {
+            display: block;
+            margin-top: 18px;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .required {
+            color: #b42318;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        button,
+        .cancel-button {
+            flex: 1;
+            padding: 12px;
+            border: 0;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button {
+            background: #d69b2d;
+            color: white;
+        }
+
+        button:hover {
+            background: #b9801e;
+        }
+
+        .cancel-button {
+            background: #e2e8f0;
+            color: #172033;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+    <section class="card">
+
+        <h2>Edit Inventory Product</h2>
+
+        <p class="store-name">
+            Store:
+            <strong th:text="${store.name}">
+                Store name
+            </strong>
+        </p>
+
+        <p class="help-text">
+            Correct the product information if something was entered
+            incorrectly.
+        </p>
+
+        <form th:action="@{/inventory/{productId}/edit(
+                            productId=${product.id}
+                        )}"
+              method="post">
+
+            <input type="hidden"
+                   name="storeCode"
+                   th:value="${store.code}">
+
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <label for="productName">
+                Product Name
+                <span class="required">*</span>
+            </label>
+
+            <input id="productName"
+                   name="productName"
+                   type="text"
+                   th:value="${product.productName}"
+                   required>
+
+            <label for="color">
+                Color
+            </label>
+
+            <input id="color"
+                   name="color"
+                   type="text"
+                   th:value="${product.color}">
+
+            <label for="meterage">
+                Meterage
+                <span class="required">*</span>
+            </label>
+
+            <input id="meterage"
+                   name="meterage"
+                   type="number"
+                   min="0"
+                   step="0.01"
+                   th:value="${product.meterage}"
+                   required>
+
+            <label for="location">
+                Storage Location
+            </label>
+
+            <input id="location"
+                   name="location"
+                   type="text"
+                   th:value="${product.location}">
+
+            <label for="productCode">
+                Product Code
+                <span class="required">*</span>
+            </label>
+
+            <input id="productCode"
+                   name="productCode"
+                   type="text"
+                   th:value="${product.productCode}"
+                   required>
+
+            <div class="button-row">
+                <button type="submit">
+                    Save Changes
+                </button>
+
+                <a class="cancel-button"
+                   th:href="@{/inventory(store=${store.code})}">
+                    Cancel
+                </a>
+            </div>
+
+        </form>
+
+    </section>
+</main>
+
+</body>
+</html>
