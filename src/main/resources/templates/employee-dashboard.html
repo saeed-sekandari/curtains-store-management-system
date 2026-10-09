@@ -249,6 +249,13 @@
                 View Orders
             </a>
 
+            <a class="button"
+               th:if="${assignedStoreCode != null
+                       and !assignedStoreCode.isBlank()}"
+               th:href="@{/inventory(store=${assignedStoreCode})}">
+                Inventory
+            </a>
+
         </div>
 
     </section>

@@ -144,6 +144,7 @@
 </header>
 
 <main>
+
     <h2>
         Welcome, <span th:text="${username}">manager</span>
     </h2>
@@ -173,10 +174,14 @@
     </div>
 
     <h2>
-        Viewing: <span th:text="${selectedStore}">All Stores</span>
+        Viewing:
+        <span th:text="${selectedStore}">
+            All Stores
+        </span>
     </h2>
 
     <div class="quick-links">
+
         <a class="quick-link" href="/users">
             Manage User Accounts
         </a>
@@ -192,9 +197,23 @@
            th:href="@{/orders(store=${selectedStoreCode})}">
             Manage Orders
         </a>
+
+        <a class="quick-link"
+           th:if="${selectedStoreCode != 'all'}"
+           th:href="@{/inventory(store=${selectedStoreCode})}">
+            Manage Inventory
+        </a>
+
+        <a class="quick-link"
+           th:if="${selectedStoreCode != 'all'}"
+           th:href="@{/suppliers(store=${selectedStoreCode})}">
+            Suppliers and Purchases
+        </a>
+
     </div>
 
     <section class="summary">
+
         <article class="card">
             <h3>Orders</h3>
 
@@ -248,7 +267,9 @@
 
             <p>Total sales</p>
         </article>
+
     </section>
+
 </main>
 
 </body>
