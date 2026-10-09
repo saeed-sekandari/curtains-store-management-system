@@ -39,10 +39,11 @@ public class InventoryProductController {
         this.storeAccessService = storeAccessService;
     }
 
-    // Shows active inventory products for the selected store.
+    // Shows inventory products and supports searching.
     @GetMapping("/inventory")
     public String inventory(
             @RequestParam String store,
+            @RequestParam(required = false, defaultValue = "") String search,
             Model model,
             Principal principal) {
 
@@ -50,19 +51,37 @@ public class InventoryProductController {
         User currentUser = getCurrentUser(principal);
 
         checkEmployeeOrManager(currentUser);
+
         storeAccessService.checkStoreAccess(
                 principal,
                 selectedStore.getCode()
         );
 
+        String cleanedSearch = search == null
+                ? ""
+                : search.trim();
+
+        if (cleanedSearch.isBlank()) {
+            model.addAttribute(
+                    "products",
+                    productRepository
+                            .findByStoreIdAndActiveTrueOrderByProductNameAsc(
+                                    selectedStore.getId()
+                            )
+            );
+        } else {
+            model.addAttribute(
+                    "products",
+                    productRepository.searchActiveProducts(
+                            selectedStore.getId(),
+                            cleanedSearch
+                    )
+            );
+        }
+
         model.addAttribute("store", selectedStore);
-        model.addAttribute(
-                "products",
-                productRepository.findByStoreIdAndActiveTrueOrderByProductNameAsc(
-                        selectedStore.getId()
-                )
-        );
         model.addAttribute("currentRole", currentUser.getRole().name());
+        model.addAttribute("search", cleanedSearch);
 
         return "inventory";
     }
@@ -78,6 +97,7 @@ public class InventoryProductController {
         User currentUser = getCurrentUser(principal);
 
         checkEmployeeOrManager(currentUser);
+
         storeAccessService.checkStoreAccess(
                 principal,
                 selectedStore.getCode()
@@ -106,6 +126,7 @@ public class InventoryProductController {
         User currentUser = getCurrentUser(principal);
 
         checkEmployeeOrManager(currentUser);
+
         storeAccessService.checkStoreAccess(
                 principal,
                 selectedStore.getCode()
@@ -158,7 +179,7 @@ public class InventoryProductController {
                 + selectedStore.getCode();
     }
 
-    // Opens the edit form for an existing product.
+    // Opens the edit form.
     @GetMapping("/inventory/{productId}/edit")
     public String editProduct(
             @PathVariable Long productId,
@@ -170,6 +191,7 @@ public class InventoryProductController {
         User currentUser = getCurrentUser(principal);
 
         checkEmployeeOrManager(currentUser);
+
         storeAccessService.checkStoreAccess(
                 principal,
                 selectedStore.getCode()
@@ -212,6 +234,7 @@ public class InventoryProductController {
         User currentUser = getCurrentUser(principal);
 
         checkEmployeeOrManager(currentUser);
+
         storeAccessService.checkStoreAccess(
                 principal,
                 selectedStore.getCode()

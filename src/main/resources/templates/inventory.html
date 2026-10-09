@@ -53,11 +53,21 @@
             color: #536174;
         }
 
-        .actions {
+        .actions,
+        .search-row {
             display: flex;
             gap: 12px;
             flex-wrap: wrap;
             margin: 20px 0;
+        }
+
+        .search-input {
+            flex: 1;
+            min-width: 240px;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
         }
 
         .button,
@@ -127,6 +137,11 @@
         .inline-form {
             display: inline;
         }
+
+        .search-result {
+            color: #536174;
+            margin-top: 0;
+        }
     </style>
 </head>
 
@@ -176,6 +191,42 @@
         <p class="muted">
             Employees can add and correct inventory records.
             Managers can also deactivate products.
+        </p>
+    </section>
+
+    <section class="card">
+        <h2>Search Inventory</h2>
+
+        <form th:action="@{/inventory}"
+              method="get">
+
+            <input type="hidden"
+                   name="store"
+                   th:value="${store.code}">
+
+            <div class="search-row">
+                <input class="search-input"
+                       type="search"
+                       name="search"
+                       th:value="${search}"
+                       placeholder="Search by product, color, location, or code">
+
+                <button class="button primary"
+                        type="submit">
+                    Search
+                </button>
+
+                <a class="button secondary"
+                   th:href="@{/inventory(store=${store.code})}">
+                    Clear
+                </a>
+            </div>
+        </form>
+
+        <p class="search-result"
+           th:if="${search != null and !search.isBlank()}"
+           th:text="|Search results for: ${search}|">
+            Search results
         </p>
     </section>
 
@@ -301,7 +352,7 @@
 
                 <tr th:if="${#lists.isEmpty(products)}">
                     <td colspan="9" class="muted">
-                        No inventory products have been added yet.
+                        No matching inventory products were found.
                     </td>
                 </tr>
                 </tbody>
