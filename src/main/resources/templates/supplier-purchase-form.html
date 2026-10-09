@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record Supplier Purchase</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 20px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        main {
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #173b68;
+        }
+
+        h3 {
+            margin-top: 30px;
+            color: #173b68;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 8px;
+        }
+
+        label {
+            display: block;
+            margin: 18px 0 7px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 180px;
+            resize: vertical;
+        }
+
+        .required {
+            color: #b42318;
+        }
+
+        .help-text {
+            color: #667085;
+            line-height: 1.5;
+        }
+
+        .total-box {
+            background: #eef6ff;
+            border: 1px solid #b9d7f5;
+            border-radius: 10px;
+            padding: 18px;
+            margin-top: 25px;
+        }
+
+        .total-box p {
+            margin: 8px 0;
+            font-size: 1.15rem;
+        }
+
+        .total-value {
+            color: #173b68;
+            font-weight: bold;
+        }
+
+        .product-box {
+            background: #fafafa;
+            border: 2px solid #dbe4ee;
+            border-radius: 12px;
+            padding: 24px;
+            margin-top: 25px;
+        }
+
+        .product-box h3 {
+            margin-top: 0;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        button,
+        a {
+            flex: 1;
+            padding: 12px;
+            border: 0;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button {
+            background: #d69b2d;
+            color: white;
+        }
+
+        button:hover {
+            background: #b9801e;
+        }
+
+        .cancel-button {
+            background: #e2e8f0;
+            color: #172033;
+        }
+
+        .cancel-button:hover {
+            background: #cbd5e1;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+    <section class="card">
+
+        <h2>Record Supplier Purchase</h2>
+
+        <p>
+            Store:
+            <strong th:text="${store.name}">
+                Store name
+            </strong>
+        </p>
+
+        <p class="help-text">
+            Record the supplier, purchase date, total amount, and all product details.
+            Supplier payments will be recorded separately.
+        </p>
+
+        <form th:action="@{/supplier-purchases}" method="post">
+
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <input type="hidden"
+                   name="storeCode"
+                   th:value="${store.code}">
+
+            <h3>Purchase Information</h3>
+
+            <label for="supplierId">
+                Supplier <span class="required">*</span>
+            </label>
+
+            <select id="supplierId"
+                    name="supplierId"
+                    required>
+
+                <option value="">
+                    Select supplier
+                </option>
+
+                <option th:each="supplier : ${suppliers}"
+                        th:value="${supplier.id}"
+                        th:text="${supplier.name}">
+                    Supplier name
+                </option>
+            </select>
+
+            <label for="purchaseDate">
+                Purchase Date and Time
+            </label>
+
+            <input id="purchaseDate"
+                   name="purchaseDate"
+                   type="datetime-local">
+
+            <label for="totalAmount">
+                Total Purchased Amount <span class="required">*</span>
+            </label>
+
+            <input id="totalAmount"
+                   name="totalAmount"
+                   type="number"
+                   min="0.01"
+                   step="0.01"
+                   placeholder="Example: 70000"
+                   required>
+
+            <label for="currency">
+                Currency <span class="required">*</span>
+            </label>
+
+            <select id="currency"
+                    name="currency"
+                    required>
+
+                <option value="AFN">
+                    AFN
+                </option>
+
+                <option value="USD">
+                    USD
+                </option>
+            </select>
+
+            <div class="total-box">
+
+                <p>
+                    Total Purchase:
+                    <span class="total-value">
+                        <span id="totalDisplay">0.00</span>
+                        <span id="currencyDisplay">AFN</span>
+                    </span>
+                </p>
+
+                <p>
+                    Initial Supplier Debt:
+                    <span class="total-value">
+                        <span id="debtDisplay">0.00</span>
+                        <span id="debtCurrencyDisplay">AFN</span>
+                    </span>
+                </p>
+
+                <p class="help-text">
+                    The full purchase amount will initially be recorded as debt.
+                    Later payments will reduce this amount.
+                </p>
+
+            </div>
+
+            <div class="product-box">
+
+                <h3>Product Information</h3>
+
+                <p class="help-text">
+                    Add all products bought in this purchase, including names,
+                    colors, meterage, prices, and any other useful details.
+                </p>
+
+                <textarea id="productInformation"
+                          name="productInformation"
+                          placeholder="Example:
+
+Velvet fabric — Dark blue — 35 meters — 2,000 AFN per meter
+White lining — 20 meters — 500 AFN per meter
+Curtain accessories — 10 sets — 1,000 AFN per set"
+                          required></textarea>
+
+            </div>
+
+            <label for="notes">
+                Notes
+            </label>
+
+            <textarea id="notes"
+                      name="notes"
+                      placeholder="Add receipt details or other notes"></textarea>
+
+            <div class="button-row">
+
+                <button type="submit">
+                    Save Purchase
+                </button>
+
+                <a class="cancel-button"
+                   th:href="@{/supplier-purchases(store=${store.code})}">
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </section>
+</main>
+
+<script>
+    const totalInput = document.getElementById("totalAmount");
+    const currencyInput = document.getElementById("currency");
+
+    const totalDisplay = document.getElementById("totalDisplay");
+    const debtDisplay = document.getElementById("debtDisplay");
+    const currencyDisplay = document.getElementById("currencyDisplay");
+    const debtCurrencyDisplay = document.getElementById("debtCurrencyDisplay");
+
+    function updateTotal() {
+        const total = parseFloat(totalInput.value) || 0;
+        const currency = currencyInput.value;
+
+        totalDisplay.textContent = total.toFixed(2);
+        debtDisplay.textContent = total.toFixed(2);
+        currencyDisplay.textContent = currency;
+        debtCurrencyDisplay.textContent = currency;
+    }
+
+    totalInput.addEventListener("input", updateTotal);
+    currencyInput.addEventListener("change", updateTotal);
+
+    updateTotal();
+</script>
+
+</body>
+</html>

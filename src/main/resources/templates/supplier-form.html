@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Supplier</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 20px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.4rem;
+        }
+
+        main {
+            max-width: 650px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #173b68;
+        }
+
+        label {
+            display: block;
+            margin: 18px 0 7px;
+            font-weight: bold;
+        }
+
+        input,
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        .required {
+            color: #b42318;
+        }
+
+        .button-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 28px;
+        }
+
+        button,
+        a {
+            flex: 1;
+            padding: 12px;
+            border: 0;
+            border-radius: 8px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button {
+            background: #d69b2d;
+            color: white;
+        }
+
+        button:hover {
+            background: #b9801e;
+        }
+
+        .cancel-button {
+            background: #e2e8f0;
+            color: #172033;
+        }
+
+        .cancel-button:hover {
+            background: #cbd5e1;
+        }
+
+        .help-text {
+            color: #667085;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+    <section class="card">
+
+        <h2>Add Supplier</h2>
+
+        <p class="help-text">
+            Add the supplier that provides fabric, lining, accessories, or other store materials.
+        </p>
+
+        <p>
+            Store:
+            <strong th:text="${store.name}">
+                Store name
+            </strong>
+        </p>
+
+        <form th:action="@{/suppliers}" method="post">
+
+            <input type="hidden"
+                   th:name="${_csrf.parameterName}"
+                   th:value="${_csrf.token}">
+
+            <input type="hidden"
+                   name="storeCode"
+                   th:value="${store.code}">
+
+            <label for="name">
+                Supplier Name <span class="required">*</span>
+            </label>
+
+            <input id="name"
+                   name="name"
+                   type="text"
+                   placeholder="Example: Kabul Fabric Center"
+                   required>
+
+            <label for="phone">
+                Phone Number
+            </label>
+
+            <input id="phone"
+                   name="phone"
+                   type="text"
+                   placeholder="Example: 0700 000 000">
+
+            <label for="address">
+                Address
+            </label>
+
+            <input id="address"
+                   name="address"
+                   type="text"
+                   placeholder="Example: Kabul Market">
+
+            <label for="notes">
+                Notes
+            </label>
+
+            <textarea id="notes"
+                      name="notes"
+                      placeholder="Add any useful information about this supplier"></textarea>
+
+            <div class="button-row">
+
+                <button type="submit">
+                    Save Supplier
+                </button>
+
+                <a class="cancel-button"
+                   th:href="@{/suppliers(store=${store.code})}">
+                    Cancel
+                </a>
+
+            </div>
+
+        </form>
+
+    </section>
+</main>
+
+</body>
+</html>

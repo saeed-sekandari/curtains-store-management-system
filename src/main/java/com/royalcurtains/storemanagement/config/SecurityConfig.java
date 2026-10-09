@@ -4,7 +4,6 @@ import com.royalcurtains.storemanagement.security.DatabaseUserDetailsService;
 import com.royalcurtains.storemanagement.security.RoleBasedLoginSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,7 +37,6 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // Public pages.
                         .requestMatchers(
                                 "/",
                                 "/home",
@@ -47,20 +45,33 @@ public class SecurityConfig {
                                 "/css/**"
                         ).permitAll()
 
-                        // Manager-only pages.
                         .requestMatchers(
                                 "/dashboard",
+                                "/dashboard/**",
                                 "/users/**"
                         ).hasRole("MANAGER")
 
-                        // Tailor dashboard.
                         .requestMatchers(
-                                "/tailor-dashboard"
+                                "/tailor-dashboard",
+                                "/tailor/work/**"
                         ).hasRole("TAILOR")
 
-                        // All three roles may view order details.
                         .requestMatchers(
-                                HttpMethod.GET,
+                                "/employee-dashboard",
+                                "/notifications/**"
+                        ).hasAnyRole(
+                                "EMPLOYEE",
+                                "ACCOUNTANT"
+                        )
+
+                        // All supplier and supplier payment features are manager-only.
+                        .requestMatchers(
+                                "/suppliers/**",
+                                "/supplier-purchases/**",
+                                "/supplier-payments/**"
+                        ).hasRole("MANAGER")
+
+                        .requestMatchers(
                                 "/orders/*/items"
                         ).hasAnyRole(
                                 "MANAGER",
@@ -69,8 +80,6 @@ public class SecurityConfig {
                                 "ACCOUNTANT"
                         )
 
-                        // Only managers, employees, and accountants may
-                        // add or create order work items.
                         .requestMatchers(
                                 "/orders/*/items/**"
                         ).hasAnyRole(
@@ -79,7 +88,6 @@ public class SecurityConfig {
                                 "ACCOUNTANT"
                         )
 
-                        // Store operations and payment pages.
                         .requestMatchers(
                                 "/customers/**",
                                 "/orders/**",
@@ -90,20 +98,7 @@ public class SecurityConfig {
                                 "ACCOUNTANT"
                         )
 
-                        // Employee and accountant dashboard.
-                        .requestMatchers(
-                                "/employee-dashboard"
-                        ).hasAnyRole(
-                                "EMPLOYEE",
-                                "ACCOUNTANT"
-                        )
-
-                        // Everything else requires login.
                         .anyRequest().authenticated()
-                )
-
-                .exceptionHandling(exception -> exception
-                        .accessDeniedPage("/access-denied")
                 )
 
                 .formLogin(form -> form
@@ -115,6 +110,10 @@ public class SecurityConfig {
                 .logout(logout -> logout
                         .logoutSuccessUrl("/")
                         .permitAll()
+                )
+
+                .exceptionHandling(exception -> exception
+                        .accessDeniedPage("/access-denied")
                 );
 
         return http.build();

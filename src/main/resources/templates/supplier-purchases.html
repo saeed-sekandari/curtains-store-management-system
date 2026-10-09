@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Purchases</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 20px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+        }
+
+        main {
+            max-width: 1400px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 28px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
+            overflow-x: auto;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #173b68;
+        }
+
+        .actions {
+            margin: 20px 0;
+        }
+
+        a {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 8px;
+            text-decoration: none;
+        }
+
+        .button {
+            background: #d69b2d;
+            color: white;
+        }
+
+        .button:hover {
+            background: #b9801e;
+        }
+
+        .back-button {
+            background: #e2e8f0;
+            color: #172033;
+            margin-left: 8px;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1150px;
+            border-collapse: collapse;
+            margin-top: 25px;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #eef3f8;
+            color: #173b68;
+            white-space: nowrap;
+        }
+
+        .product-information {
+            min-width: 300px;
+            white-space: pre-line;
+            line-height: 1.5;
+        }
+
+        .paid {
+            color: #16803c;
+            font-weight: bold;
+        }
+
+        .owed {
+            color: #b42318;
+            font-weight: bold;
+        }
+
+        .empty {
+            color: #667085;
+            margin-top: 25px;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+    <section class="card">
+
+        <h2>
+            Supplier Purchases —
+            <span th:text="${store.name}">
+                Store name
+            </span>
+        </h2>
+
+        <div class="actions">
+
+            <a class="button"
+               th:href="@{/supplier-purchases/new(store=${store.code})}">
+                Record Purchase
+            </a>
+
+            <a class="back-button"
+               th:href="@{/supplier-payments(store=${store.code})}">
+                Supplier Payments
+            </a>
+
+            <a class="back-button"
+               th:href="@{/suppliers(store=${store.code})}">
+                Suppliers
+            </a>
+
+            <a class="back-button"
+               th:href="@{/}">
+                Home
+            </a>
+
+        </div>
+
+        <p class="empty" th:if="${#lists.isEmpty(purchases)}">
+            No supplier purchases have been recorded yet.
+        </p>
+
+        <table th:if="${!#lists.isEmpty(purchases)}">
+
+            <thead>
+            <tr>
+                <th>Purchase Date and Time</th>
+                <th>Supplier</th>
+                <th>Total Purchase</th>
+                <th>Amount Paid</th>
+                <th>Remaining Debt</th>
+                <th>Currency</th>
+                <th>Product Information</th>
+                <th>Recorded By</th>
+                <th>Notes</th>
+            </tr>
+            </thead>
+
+            <tbody>
+
+            <tr th:each="purchase : ${purchases}">
+
+                <td th:text="${#temporals.format(
+                              purchase.purchaseDate,
+                              'yyyy-MM-dd HH:mm')}">
+                    2026-10-09 10:00
+                </td>
+
+                <td th:text="${purchase.supplier.name}">
+                    Haji Fridoon
+                </td>
+
+                <td>
+                    <span th:text="${purchase.totalAmount}">
+                        70,000.00
+                    </span>
+                    <span th:text="${purchase.currency}">
+                        AFN
+                    </span>
+                </td>
+
+                <td class="paid">
+                    <span th:text="${purchase.amountPaid}">
+                        0.00
+                    </span>
+                    <span th:text="${purchase.currency}">
+                        AFN
+                    </span>
+                </td>
+
+                <td class="owed">
+                    <span th:text="${purchase.remainingDebt}">
+                        70,000.00
+                    </span>
+                    <span th:text="${purchase.currency}">
+                        AFN
+                    </span>
+                </td>
+
+                <td th:text="${purchase.currency}">
+                    AFN
+                </td>
+
+                <td class="product-information"
+                    th:text="${purchase.productInformation}">
+                    Velvet fabric - Dark blue - 35 meters
+                </td>
+
+                <td th:text="${purchase.recordedBy.fullName}">
+                    System Manager
+                </td>
+
+                <td th:text="${purchase.notes != null and !purchase.notes.isBlank()
+                              ? purchase.notes : 'None'}">
+                    None
+                </td>
+
+            </tr>
+
+            </tbody>
+        </table>
+
+    </section>
+</main>
+
+</body>
+</html>

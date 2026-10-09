@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Supplier Management</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 20px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+        }
+
+        main {
+            max-width: 1250px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 28px;
+            margin-bottom: 22px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .1);
+        }
+
+        h2,
+        h3 {
+            color: #173b68;
+        }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        details {
+            margin-top: 20px;
+            padding: 18px;
+            border: 1px solid #dbe4ee;
+            border-radius: 10px;
+            background: #fafafa;
+        }
+
+        summary {
+            cursor: pointer;
+            color: #173b68;
+            font-weight: bold;
+            font-size: 1.05rem;
+        }
+
+        form {
+            margin-top: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 15px 0 6px;
+            font-weight: bold;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0 18px;
+        }
+
+        .full-width {
+            grid-column: 1 / -1;
+        }
+
+        button,
+        .dashboard-button,
+        .clear-button {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 11px 17px;
+            border: 0;
+            border-radius: 8px;
+            background: #d69b2d;
+            color: white;
+            text-decoration: none;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .dashboard-button,
+        .clear-button {
+            background: #e2e8f0;
+            color: #172033;
+            margin-top: 0;
+        }
+
+        .error-message {
+            background: #fff1f0;
+            border: 1px solid #f2a6a0;
+            color: #b42318;
+            padding: 14px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        table {
+            width: 100%;
+            min-width: 900px;
+            border-collapse: collapse;
+            margin-top: 18px;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        th,
+        td {
+            padding: 11px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #eef3f8;
+            color: #173b68;
+            white-space: nowrap;
+        }
+
+        td a {
+            color: #173b68;
+            font-weight: bold;
+            text-decoration: underline;
+        }
+
+        .product-information {
+            min-width: 280px;
+            white-space: pre-line;
+            line-height: 1.5;
+        }
+
+        .empty {
+            color: #667085;
+        }
+
+        .selected-message {
+            background: #eef6ff;
+            border-left: 4px solid #173b68;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .full-width {
+                grid-column: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+
+    <section class="card">
+
+        <h2>
+            Supplier Management —
+            <span th:text="${store.name}">
+                Store name
+            </span>
+        </h2>
+
+        <p>
+            Manage suppliers, purchases, and supplier payments from this page.
+        </p>
+
+        <div class="error-message"
+             th:if="${error}"
+             th:text="${error}">
+            Error message
+        </div>
+
+        <a class="dashboard-button"
+           th:href="@{/dashboard}">
+            Back to Manager Dashboard
+        </a>
+
+        <div class="selected-message"
+             th:if="${selectedSupplier != null}">
+
+            Showing information only for:
+
+            <strong th:text="${selectedSupplier.name}">
+                Supplier name
+            </strong>
+
+            <br>
+
+            <a class="clear-button"
+               th:href="@{/suppliers(store=${store.code})}">
+                Show All Suppliers
+            </a>
+        </div>
+
+        <details>
+            <summary>Add Supplier</summary>
+
+            <form th:action="@{/suppliers}" method="post">
+
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}">
+
+                <input type="hidden"
+                       name="storeCode"
+                       th:value="${store.code}">
+
+                <div class="form-grid">
+
+                    <div>
+                        <label for="supplierName">
+                            Company Name *
+                        </label>
+
+                        <input id="supplierName"
+                               name="name"
+                               type="text"
+                               required>
+                    </div>
+
+                    <div>
+                        <label for="supplierPhone">
+                            Phone Number
+                        </label>
+
+                        <input id="supplierPhone"
+                               name="phone"
+                               type="text">
+                    </div>
+
+                    <div>
+                        <label for="supplierAddress">
+                            Address
+                        </label>
+
+                        <input id="supplierAddress"
+                               name="address"
+                               type="text">
+                    </div>
+
+                    <div>
+                        <label for="supplierNotes">
+                            Notes
+                        </label>
+
+                        <input id="supplierNotes"
+                               name="notes"
+                               type="text">
+                    </div>
+
+                </div>
+
+                <button type="submit">
+                    Save Supplier
+                </button>
+
+            </form>
+        </details>
+
+        <details>
+            <summary>Record Purchase</summary>
+
+            <form th:action="@{/supplier-purchases}" method="post">
+
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}">
+
+                <input type="hidden"
+                       name="storeCode"
+                       th:value="${store.code}">
+
+                <div class="form-grid">
+
+                    <div>
+                        <label for="purchaseSupplier">
+                            Supplier *
+                        </label>
+
+                        <select id="purchaseSupplier"
+                                name="supplierId"
+                                required>
+
+                            <option value="">
+                                Select supplier
+                            </option>
+
+                            <option th:each="supplier : ${suppliers}"
+                                    th:value="${supplier.id}"
+                                    th:text="${supplier.name}"
+                                    th:selected="${selectedSupplier != null
+                                                  and selectedSupplier.id == supplier.id}">
+                                Supplier name
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="purchaseDate">
+                            Purchase Date and Time
+                        </label>
+
+                        <input id="purchaseDate"
+                               name="purchaseDate"
+                               type="datetime-local">
+                    </div>
+
+                    <div>
+                        <label for="totalAmount">
+                            Total Purchased Amount *
+                        </label>
+
+                        <input id="totalAmount"
+                               name="totalAmount"
+                               type="number"
+                               min="0.01"
+                               step="0.01"
+                               required>
+                    </div>
+
+                    <div>
+                        <label for="purchaseCurrency">
+                            Currency *
+                        </label>
+
+                        <select id="purchaseCurrency"
+                                name="currency"
+                                required>
+
+                            <option value="AFN">AFN</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+
+                    <div class="full-width">
+                        <label for="productInformation">
+                            Product Information *
+                        </label>
+
+                        <textarea id="productInformation"
+                                  name="productInformation"
+                                  placeholder="Example:
+Velvet fabric — Dark blue — 35 meters
+White lining — 20 meters"
+                                  required></textarea>
+                    </div>
+
+                    <div class="full-width">
+                        <label for="purchaseNotes">
+                            Notes
+                        </label>
+
+                        <textarea id="purchaseNotes"
+                                  name="notes"></textarea>
+                    </div>
+
+                </div>
+
+                <button type="submit">
+                    Save Purchase
+                </button>
+
+            </form>
+        </details>
+
+        <details>
+            <summary>Record Supplier Payment</summary>
+
+            <form th:action="@{/supplier-payments}" method="post">
+
+                <input type="hidden"
+                       th:name="${_csrf.parameterName}"
+                       th:value="${_csrf.token}">
+
+                <input type="hidden"
+                       name="storeCode"
+                       th:value="${store.code}">
+
+                <div class="form-grid">
+
+                    <div>
+                        <label for="paymentSupplier">
+                            Supplier *
+                        </label>
+
+                        <select id="paymentSupplier"
+                                name="supplierId"
+                                required>
+
+                            <option value="">
+                                Select supplier
+                            </option>
+
+                            <option th:each="supplier : ${suppliers}"
+                                    th:value="${supplier.id}"
+                                    th:text="${supplier.name}"
+                                    th:selected="${selectedSupplier != null
+                                                  and selectedSupplier.id == supplier.id}">
+                                Supplier name
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="paymentDate">
+                            Payment Date and Time
+                        </label>
+
+                        <input id="paymentDate"
+                               name="paymentDate"
+                               type="datetime-local">
+                    </div>
+
+                    <div>
+                        <label for="paymentAmount">
+                            Payment Amount *
+                        </label>
+
+                        <input id="paymentAmount"
+                               name="amount"
+                               type="number"
+                               min="0.01"
+                               step="0.01"
+                               required>
+                    </div>
+
+                    <div>
+                        <label for="paymentCurrency">
+                            Currency *
+                        </label>
+
+                        <select id="paymentCurrency"
+                                name="currency"
+                                required>
+
+                            <option value="AFN">AFN</option>
+                            <option value="USD">USD</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label for="receivedBy">
+                            Person Who Received the Money *
+                        </label>
+
+                        <input id="receivedBy"
+                               name="receivedBy"
+                               type="text"
+                               required>
+                    </div>
+
+                    <div>
+                        <label for="paymentNotes">
+                            Notes
+                        </label>
+
+                        <input id="paymentNotes"
+                               name="notes"
+                               type="text">
+                    </div>
+
+                </div>
+
+                <button type="submit">
+                    Save Payment
+                </button>
+
+            </form>
+        </details>
+
+    </section>
+
+    <section class="card">
+
+        <h2>Suppliers</h2>
+
+        <p class="empty"
+           th:if="${#lists.isEmpty(suppliers)}">
+            No suppliers have been added yet.
+        </p>
+
+        <div class="table-wrapper"
+             th:if="${!#lists.isEmpty(suppliers)}">
+
+            <table>
+                <thead>
+                <tr>
+                    <th>Company Name</th>
+                    <th>Phone</th>
+                    <th>Total Purchased</th>
+                    <th>Total Owed</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="supplier : ${suppliers}">
+
+                    <td>
+                        <a th:href="@{/suppliers(
+                                      store=${store.code},
+                                      supplierId=${supplier.id})}"
+                           th:text="${supplier.name}">
+                            Haji Fridoon
+                        </a>
+                    </td>
+
+                    <td th:text="${supplier.phone != null
+                                  and !supplier.phone.isBlank()
+                                  ? supplier.phone
+                                  : 'Not provided'}">
+                        Not provided
+                    </td>
+
+                    <td th:text="${totalPurchasedBySupplier[supplier.id]}">
+                        120000.00 AFN
+                    </td>
+
+                    <td th:text="${totalOwedBySupplier[supplier.id]}">
+                        70000.00 AFN
+                    </td>
+
+                </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+    </section>
+
+    <section class="card">
+
+        <h2>
+            Purchase History
+            <span th:if="${selectedSupplier != null}"
+                  th:text="'— ' + ${selectedSupplier.name}">
+                — Supplier
+            </span>
+        </h2>
+
+        <p class="empty"
+           th:if="${#lists.isEmpty(purchases)}">
+            No purchases have been recorded for this supplier.
+        </p>
+
+        <div class="table-wrapper"
+             th:if="${!#lists.isEmpty(purchases)}">
+
+            <table>
+                <thead>
+                <tr>
+                    <th>Date and Time</th>
+                    <th>Supplier</th>
+                    <th>Total</th>
+                    <th>Paid</th>
+                    <th>Remaining Debt</th>
+                    <th>Currency</th>
+                    <th>Product Information</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="purchase : ${purchases}">
+
+                    <td th:text="${#temporals.format(
+                                  purchase.purchaseDate,
+                                  'yyyy-MM-dd HH:mm')}">
+                        Date
+                    </td>
+
+                    <td th:text="${purchase.supplier.name}">
+                        Supplier
+                    </td>
+
+                    <td th:text="${purchase.totalAmount}">
+                        120000.00
+                    </td>
+
+                    <td th:text="${purchase.amountPaid}">
+                        50000.00
+                    </td>
+
+                    <td th:text="${purchase.remainingDebt}">
+                        70000.00
+                    </td>
+
+                    <td th:text="${purchase.currency}">
+                        AFN
+                    </td>
+
+                    <td class="product-information"
+                        th:text="${purchase.productInformation}">
+                        Product details
+                    </td>
+
+                </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+    </section>
+
+    <section class="card">
+
+        <h2>
+            Payment History
+            <span th:if="${selectedSupplier != null}"
+                  th:text="'— ' + ${selectedSupplier.name}">
+                — Supplier
+            </span>
+        </h2>
+
+        <p class="empty"
+           th:if="${#lists.isEmpty(payments)}">
+            No payments have been recorded for this supplier.
+        </p>
+
+        <div class="table-wrapper"
+             th:if="${!#lists.isEmpty(payments)}">
+
+            <table>
+                <thead>
+                <tr>
+                    <th>Date and Time</th>
+                    <th>Supplier</th>
+                    <th>Amount</th>
+                    <th>Currency</th>
+                    <th>Received By</th>
+                    <th>Recorded By</th>
+                    <th>Notes</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="payment : ${payments}">
+
+                    <td th:text="${#temporals.format(
+                                  payment.paymentDate,
+                                  'yyyy-MM-dd HH:mm')}">
+                        Date
+                    </td>
+
+                    <td th:text="${payment.supplier.name}">
+                        Supplier
+                    </td>
+
+                    <td th:text="${payment.amount}">
+                        50000.00
+                    </td>
+
+                    <td th:text="${payment.currency}">
+                        AFN
+                    </td>
+
+                    <td th:text="${payment.receivedBy}">
+                        Recipient
+                    </td>
+
+                    <td th:text="${payment.recordedBy.fullName}">
+                        Manager
+                    </td>
+
+                    <td th:text="${payment.notes != null
+                                  and !payment.notes.isBlank()
+                                  ? payment.notes
+                                  : 'None'}">
+                        None
+                    </td>
+
+                </tr>
+
+                </tbody>
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+</body>
+</html>
