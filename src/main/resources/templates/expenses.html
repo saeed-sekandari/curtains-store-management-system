@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Expense Reports</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 22px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        main {
+            max-width: 1250px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 25px;
+            margin-bottom: 24px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .08);
+        }
+
+        h2,
+        h3 {
+            color: #173b68;
+            margin-top: 0;
+        }
+
+        .store-name {
+            color: #d69b2d;
+            font-weight: bold;
+        }
+
+        .report-title {
+            color: #d69b2d;
+        }
+
+        .links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        .button {
+            display: inline-block;
+            padding: 11px 16px;
+            border-radius: 8px;
+            background: #173b68;
+            color: white;
+            text-decoration: none;
+        }
+
+        .button:hover {
+            background: #0f2b4d;
+        }
+
+        .gold-button {
+            background: #d69b2d;
+        }
+
+        .gold-button:hover {
+            background: #b9801e;
+        }
+
+        .filter-form {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: end;
+            margin-top: 22px;
+        }
+
+        .filter-group {
+            min-width: 170px;
+        }
+
+        .filter-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        select {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+        }
+
+        .filter-button {
+            border: 0;
+            padding: 11px 18px;
+            border-radius: 8px;
+            background: #173b68;
+            color: white;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        .summary {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+            gap: 18px;
+        }
+
+        .summary-card {
+            padding: 20px;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+
+        .summary-card h3 {
+            margin-bottom: 10px;
+        }
+
+        .total {
+            color: #d69b2d;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .category-table,
+        .records-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .category-table th,
+        .category-table td,
+        .records-table th,
+        .records-table td {
+            border-bottom: 1px solid #e2e8f0;
+            padding: 12px 10px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        .category-table th,
+        .records-table th {
+            background: #f8fafc;
+            color: #173b68;
+        }
+
+        .records-wrapper {
+            overflow-x: auto;
+        }
+
+        .empty {
+            color: #667085;
+        }
+
+        @media (max-width: 750px) {
+            .records-table {
+                min-width: 1000px;
+            }
+
+            .filter-form {
+                display: block;
+            }
+
+            .filter-group {
+                margin-bottom: 12px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Expense Reports</h1>
+</header>
+
+<main>
+
+    <section class="card">
+
+        <h2>
+            Viewing:
+
+            <span class="store-name"
+                  th:if="${selectedStore != null}"
+                  th:text="${selectedStore.name}">
+                Royal Curtains Store
+            </span>
+
+            <span class="store-name"
+                  th:if="${selectedStore == null}">
+                Both Stores
+            </span>
+        </h2>
+
+        <p>
+            Current report:
+
+            <strong class="report-title"
+                    th:text="${periodLabel}">
+                Monthly Report
+            </strong>
+        </p>
+
+        <p>
+            Period:
+
+            <strong th:text="${reportStart}">
+                1 Mizan 1405
+            </strong>
+
+            <span th:if="${reportStart != reportEnd}">
+                to
+            </span>
+
+            <strong th:if="${reportStart != reportEnd}"
+                    th:text="${reportEnd}">
+                30 Mizan 1405
+            </strong>
+        </p>
+
+        <form class="filter-form"
+              th:action="@{/expenses}"
+              method="get">
+
+            <input type="hidden"
+                   name="store"
+                   th:value="${selectedStoreCode}">
+
+            <div class="filter-group">
+
+                <label for="period">
+                    Report Period
+                </label>
+
+                <select id="period"
+                        name="period"
+                        onchange="updateDateFields()"
+                        required>
+
+                    <option value="daily"
+                            th:selected="${period == 'daily'}">
+                        Daily
+                    </option>
+
+                    <option value="weekly"
+                            th:selected="${period == 'weekly'}">
+                        Weekly
+                    </option>
+
+                    <option value="monthly"
+                            th:selected="${period == 'monthly'}">
+                        Monthly
+                    </option>
+
+                    <option value="yearly"
+                            th:selected="${period == 'yearly'}">
+                        Yearly
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="filter-group">
+
+                <label for="year">
+                    Afghan Year
+                </label>
+
+                <select id="year"
+                        name="year"
+                        required>
+
+                    <option th:each="availableYear : ${availableYears}"
+                            th:value="${availableYear}"
+                            th:text="${availableYear}"
+                            th:selected="${availableYear == selectedYear}">
+                        1405
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="filter-group"
+                 id="month-group">
+
+                <label for="month">
+                    Afghan Month
+                </label>
+
+                <select id="month"
+                        name="month"
+                        required>
+
+                    <option th:each="monthNumber : ${availableMonths}"
+                            th:value="${monthNumber}"
+                            th:text="${monthNames[monthNumber - 1]}"
+                            th:selected="${monthNumber == selectedMonth}">
+                        Hamal
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="filter-group"
+                 id="day-group">
+
+                <label for="day">
+                    Afghan Day
+                </label>
+
+                <select id="day"
+                        name="day"
+                        required>
+
+                    <option th:each="availableDay : ${availableDays}"
+                            th:value="${availableDay}"
+                            th:text="${availableDay}"
+                            th:selected="${availableDay == selectedDay}">
+                        1
+                    </option>
+
+                </select>
+
+            </div>
+
+            <button class="filter-button"
+                    type="submit">
+                View Report
+            </button>
+
+        </form>
+
+        <div class="links">
+
+            <a class="button gold-button"
+               th:if="${selectedStoreCode != 'all'}"
+               th:href="@{/expenses/new(store=${selectedStoreCode})}">
+                Record Expense or Payment
+            </a>
+
+            <a class="button gold-button"
+               th:if="${selectedStoreCode == 'all'}"
+               href="/expenses/new?store=royal">
+                Record Expense or Payment
+            </a>
+
+            <a class="button"
+               th:href="@{/dashboard(store=${selectedStoreCode})}">
+                Back to Dashboard
+            </a>
+
+        </div>
+
+    </section>
+
+    <section class="card">
+
+        <h2>
+            Totals for This Report
+        </h2>
+
+        <div class="summary">
+
+            <article class="summary-card">
+                <h3>Total AFN</h3>
+
+                <div class="total">
+                    <span th:text="${afnTotal}">
+                        0.00
+                    </span>
+                    AFN
+                </div>
+            </article>
+
+            <article class="summary-card">
+                <h3>Total USD</h3>
+
+                <div class="total">
+                    <span th:text="${usdTotal}">
+                        0.00
+                    </span>
+                    USD
+                </div>
+            </article>
+
+        </div>
+
+        <p class="empty">
+            AFN and USD are calculated separately.
+        </p>
+
+    </section>
+
+    <section class="card">
+
+        <h2>AFN Totals by Category</h2>
+
+        <table class="category-table"
+               th:if="${!afnTotalsByCategory.isEmpty()}">
+
+            <thead>
+            <tr>
+                <th>Category</th>
+                <th>Total</th>
+            </tr>
+            </thead>
+
+            <tbody>
+
+            <tr th:each="entry : ${afnTotalsByCategory}">
+
+                <td th:text="${entry.key}">
+                    RENT
+                </td>
+
+                <td>
+                    <span th:text="${entry.value}">
+                        0.00
+                    </span>
+                    AFN
+                </td>
+
+            </tr>
+
+            </tbody>
+
+        </table>
+
+        <p class="empty"
+           th:if="${afnTotalsByCategory.isEmpty()}">
+            No AFN records for this report.
+        </p>
+
+    </section>
+
+    <section class="card">
+
+        <h2>USD Totals by Category</h2>
+
+        <table class="category-table"
+               th:if="${!usdTotalsByCategory.isEmpty()}">
+
+            <thead>
+            <tr>
+                <th>Category</th>
+                <th>Total</th>
+            </tr>
+            </thead>
+
+            <tbody>
+
+            <tr th:each="entry : ${usdTotalsByCategory}">
+
+                <td th:text="${entry.key}">
+                    RENT
+                </td>
+
+                <td>
+                    <span th:text="${entry.value}">
+                        0.00
+                    </span>
+                    USD
+                </td>
+
+            </tr>
+
+            </tbody>
+
+        </table>
+
+        <p class="empty"
+           th:if="${usdTotalsByCategory.isEmpty()}">
+            No USD records for this report.
+        </p>
+
+    </section>
+
+    <section class="card">
+
+        <h2>Records for This Report</h2>
+
+        <div class="records-wrapper">
+
+            <table class="records-table"
+                   th:if="${!records.isEmpty()}">
+
+                <thead>
+                <tr>
+                    <th>Date and Time</th>
+                    <th>Store</th>
+                    <th>Category</th>
+                    <th>Worker or Recipient</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Recorded By</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="record : ${records}">
+
+                    <td th:text="${T(
+                        com.royalcurtains.storemanagement.util.AfghanDateUtil
+                    ).format(record.expenseDate)}">
+                        18 Mizan 1405 15:46
+                    </td>
+
+                    <td th:text="${record.store.name}">
+                        Royal Curtains Store
+                    </td>
+
+                    <td th:text="${record.category}">
+                        RENT
+                    </td>
+
+                    <td>
+
+                        <span th:if="${record.worker != null}"
+                              th:text="${record.worker.fullName}">
+                            Ahmad Rahimi
+                        </span>
+
+                        <span th:if="${record.worker == null
+                                      and record.recipientName != null
+                                      and !record.recipientName.isBlank()}"
+                              th:text="${record.recipientName}">
+                            Manager family expense
+                        </span>
+
+                        <span th:if="${record.worker == null
+                                      and (record.recipientName == null
+                                      or record.recipientName.isBlank())}">
+                            —
+                        </span>
+
+                    </td>
+
+                    <td>
+                        <span th:text="${record.amount}">
+                            0.00
+                        </span>
+
+                        <span th:text="${record.currency}">
+                            AFN
+                        </span>
+                    </td>
+
+                    <td th:text="${record.description != null
+                                  and !record.description.isBlank()
+                                  ? record.description
+                                  : '—'}">
+                        Monthly rent
+                    </td>
+
+                    <td th:text="${record.recordedBy.fullName}">
+                        System Manager
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+        <p class="empty"
+           th:if="${records.isEmpty()}">
+            No records for this report.
+        </p>
+
+    </section>
+
+</main>
+
+<script>
+    function updateDateFields() {
+        const period = document.getElementById("period").value;
+        const monthGroup = document.getElementById("month-group");
+        const dayGroup = document.getElementById("day-group");
+        const month = document.getElementById("month");
+        const day = document.getElementById("day");
+
+        if (period === "yearly") {
+            monthGroup.style.display = "none";
+            dayGroup.style.display = "none";
+            month.removeAttribute("required");
+            day.removeAttribute("required");
+        } else if (period === "monthly") {
+            monthGroup.style.display = "block";
+            dayGroup.style.display = "none";
+            month.setAttribute("required", "required");
+            day.removeAttribute("required");
+        } else {
+            monthGroup.style.display = "block";
+            dayGroup.style.display = "block";
+            month.setAttribute("required", "required");
+            day.setAttribute("required", "required");
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", updateDateFields);
+</script>
+
+</body>
+</html>

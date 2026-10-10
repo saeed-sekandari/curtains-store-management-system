@@ -130,9 +130,11 @@
 <body>
 
 <header class="topbar">
+
     <h1>Manager Dashboard</h1>
 
     <form th:action="@{/logout}" method="post">
+
         <input type="hidden"
                th:name="${_csrf.parameterName}"
                th:value="${_csrf.token}">
@@ -140,13 +142,18 @@
         <button class="logout-button" type="submit">
             Log out
         </button>
+
     </form>
+
 </header>
 
 <main>
 
     <h2>
-        Welcome, <span th:text="${username}">manager</span>
+        Welcome,
+        <span th:text="${username}">
+            manager
+        </span>
     </h2>
 
     <p class="intro">
@@ -154,6 +161,7 @@
     </p>
 
     <div class="store-links">
+
         <a class="store-link"
            th:classappend="${selectedStoreCode == 'all'} ? ' selected' : ''"
            href="/dashboard?store=all">
@@ -171,6 +179,7 @@
            href="/dashboard?store=kabul">
             Kabul Dubai Curtains Store
         </a>
+
     </div>
 
     <h2>
@@ -200,14 +209,14 @@
 
         <a class="quick-link"
            th:if="${selectedStoreCode != 'all'}"
-           th:href="@{/inventory(store=${selectedStoreCode})}">
-            Manage Inventory
+           th:href="@{/expenses(store=${selectedStoreCode})}">
+            Manage Expenses and Payments
         </a>
 
         <a class="quick-link"
-           th:if="${selectedStoreCode != 'all'}"
-           th:href="@{/suppliers(store=${selectedStoreCode})}">
-            Suppliers and Purchases
+           th:if="${selectedStoreCode == 'all'}"
+           href="/expenses?store=all">
+            View All Expenses and Payments
         </a>
 
     </div>
@@ -215,13 +224,15 @@
     <section class="summary">
 
         <article class="card">
+
             <h3>Orders</h3>
 
             <p>
                 Orders for the selected store view.
             </p>
 
-            <div class="number" th:text="${orderCount}">
+            <div class="number"
+                 th:text="${orderCount}">
                 0
             </div>
 
@@ -232,16 +243,19 @@
                th:href="@{/orders(store=${selectedStoreCode})}">
                 View Orders
             </a>
+
         </article>
 
         <article class="card">
+
             <h3>Customers</h3>
 
             <p>
                 Customers for the selected store view.
             </p>
 
-            <div class="number" th:text="${customerCount}">
+            <div class="number"
+                 th:text="${customerCount}">
                 0
             </div>
 
@@ -252,9 +266,11 @@
                th:href="@{/customers(store=${selectedStoreCode})}">
                 View Customers
             </a>
+
         </article>
 
         <article class="card">
+
             <h3>Sales</h3>
 
             <p>
@@ -262,10 +278,14 @@
             </p>
 
             <div class="number">
-                <span th:text="${totalSales}">0</span> AFN
+                <span th:text="${totalSales}">
+                    0
+                </span>
+                AFN
             </div>
 
             <p>Total sales</p>
+
         </article>
 
     </section>

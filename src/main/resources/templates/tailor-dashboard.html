@@ -114,11 +114,18 @@
             color: #1e40af;
         }
 
+        .completed-status {
+            background: #d1fae5;
+            color: #166534;
+        }
+
         .work-form {
             margin-top: 12px;
         }
 
-        .work-form button {
+        .work-form button,
+        .payment-button {
+            display: inline-block;
             padding: 9px 14px;
             border: 0;
             border-radius: 7px;
@@ -126,10 +133,20 @@
             color: white;
             cursor: pointer;
             font-size: 0.95rem;
+            text-decoration: none;
         }
 
         .work-form button:hover {
             background: #0f2b4d;
+        }
+
+        .payment-button {
+            background: #d69b2d;
+            margin-top: 15px;
+        }
+
+        .payment-button:hover {
+            background: #b9801e;
         }
 
         .completed-message {
@@ -166,8 +183,7 @@
     <h1>Tailor Dashboard</h1>
 
     <form th:action="@{/logout}"
-          method="post"
-          style="display: inline;">
+          method="post">
 
         <input type="hidden"
                th:name="${_csrf.parameterName}"
@@ -177,6 +193,7 @@
                 type="submit">
             Log out
         </button>
+
     </form>
 
 </header>
@@ -184,6 +201,7 @@
 <main>
 
     <section class="intro">
+
         <h2>
             Welcome,
             <span th:text="${tailor.fullName}">
@@ -194,6 +212,12 @@
         <p>
             Active work appears first. Completed work is shown below.
         </p>
+
+        <a class="payment-button"
+           href="/my-payments">
+            My Payments
+        </a>
+
     </section>
 
     <h2 class="section-title">
@@ -201,11 +225,11 @@
     </h2>
 
     <p class="empty"
-       th:if="${assignedItems == null or #lists.isEmpty(assignedItems)}">
+       th:if="${assignedItems == null
+               or #lists.isEmpty(assignedItems)}">
         You do not have any assigned work right now.
     </p>
 
-    <!-- Active work appears first. -->
     <section class="work-card"
              th:each="item : ${assignedItems}"
              th:if="${item.workStatus != 'COMPLETED'}">
@@ -226,7 +250,6 @@
 
             <div class="detail">
                 <strong>Customer</strong>
-
                 <span th:text="${item.order.customer.fullName}">
                     Customer name
                 </span>
@@ -234,8 +257,8 @@
 
             <div class="detail">
                 <strong>Room</strong>
-
-                <span th:text="${item.roomName != null and !item.roomName.isBlank()
+                <span th:text="${item.roomName != null
+                                and !item.roomName.isBlank()
                                 ? item.roomName
                                 : 'Not specified'}">
                     Living room
@@ -244,7 +267,6 @@
 
             <div class="detail">
                 <strong>Width</strong>
-
                 <span th:text="${item.width != null
                                 ? item.width + ' cm'
                                 : 'Not specified'}">
@@ -254,7 +276,6 @@
 
             <div class="detail">
                 <strong>Height</strong>
-
                 <span th:text="${item.height != null
                                 ? item.height + ' cm'
                                 : 'Not specified'}">
@@ -264,7 +285,6 @@
 
             <div class="detail">
                 <strong>Quantity</strong>
-
                 <span th:text="${item.quantity}">
                     4
                 </span>
@@ -274,7 +294,9 @@
                 <strong>Received</strong>
 
                 <span th:if="${item.receivedAt != null}"
-                      th:text="${#temporals.format(item.receivedAt, 'yyyy-MM-dd HH:mm')}">
+                      th:text="${#temporals.format(
+                              item.receivedAt,
+                              'yyyy-MM-dd HH:mm')}">
                     2026-10-08 13:42
                 </span>
 
@@ -305,7 +327,8 @@
                 </span>
 
                 <form th:if="${item.workStatus == 'RECEIVED'}"
-                      th:action="@{/tailor/work/{itemId}/start(itemId=${item.id})}"
+                      th:action="@{/tailor/work/{itemId}/start(
+                                  itemId=${item.id})}"
                       method="post"
                       class="work-form">
 
@@ -316,10 +339,12 @@
                     <button type="submit">
                         Start Work
                     </button>
+
                 </form>
 
                 <form th:if="${item.workStatus == 'IN_PROGRESS'}"
-                      th:action="@{/tailor/work/{itemId}/complete(itemId=${item.id})}"
+                      th:action="@{/tailor/work/{itemId}/complete(
+                                  itemId=${item.id})}"
                       method="post"
                       class="work-form">
 
@@ -330,8 +355,11 @@
                     <button type="submit">
                         Mark as Completed
                     </button>
+
                 </form>
+
             </div>
+
         </div>
 
         <div class="detail"
@@ -339,28 +367,34 @@
 
             <strong>Fabric and Color</strong>
 
-            <div th:if="${item.fabrics != null and !#lists.isEmpty(item.fabrics)}"
+            <div th:if="${item.fabrics != null
+                         and !#lists.isEmpty(item.fabrics)}"
                  th:each="fabric : ${item.fabrics}"
                  class="fabric">
 
                 <span th:text="${fabric.fabricName}">
-                    Jali Nakhi
+                    Fabric name
                 </span>
 
-                <span th:if="${fabric.color != null and !fabric.color.isBlank()}"
+                <span th:if="${fabric.color != null
+                              and !fabric.color.isBlank()}"
                       th:text="${' - ' + fabric.color}">
                     - Green
                 </span>
 
-                <div th:if="${fabric.notes != null and !fabric.notes.isBlank()}"
+                <div th:if="${fabric.notes != null
+                             and !fabric.notes.isBlank()}"
                      th:text="${fabric.notes}">
                     Fabric notes
                 </div>
+
             </div>
 
-            <span th:if="${item.fabrics == null or #lists.isEmpty(item.fabrics)}">
+            <span th:if="${item.fabrics == null
+                          or #lists.isEmpty(item.fabrics)}">
                 No fabric information provided.
             </span>
+
         </div>
 
         <div class="detail"
@@ -368,21 +402,25 @@
 
             <strong>Design</strong>
 
-            <span th:text="${item.design != null and !item.design.isBlank()
+            <span th:text="${item.design != null
+                            and !item.design.isBlank()
                             ? item.design
                             : 'Not specified'}">
-                Ringi Sada
+                Design
             </span>
+
         </div>
 
         <div class="notes"
-             th:if="${item.specialNotes != null and !item.specialNotes.isBlank()}">
+             th:if="${item.specialNotes != null
+                     and !item.specialNotes.isBlank()}">
 
             <strong>Special Notes</strong>
 
             <p th:text="${item.specialNotes}">
                 Special instructions
             </p>
+
         </div>
 
     </section>
@@ -391,7 +429,6 @@
         Completed Work
     </h2>
 
-    <!-- Completed work also keeps all measurements and production details. -->
     <section class="work-card completed-card"
              th:each="item : ${assignedItems}"
              th:if="${item.workStatus == 'COMPLETED'}">
@@ -412,7 +449,6 @@
 
             <div class="detail">
                 <strong>Customer</strong>
-
                 <span th:text="${item.order.customer.fullName}">
                     Customer name
                 </span>
@@ -420,8 +456,8 @@
 
             <div class="detail">
                 <strong>Room</strong>
-
-                <span th:text="${item.roomName != null and !item.roomName.isBlank()
+                <span th:text="${item.roomName != null
+                                and !item.roomName.isBlank()
                                 ? item.roomName
                                 : 'Not specified'}">
                     Living room
@@ -430,7 +466,6 @@
 
             <div class="detail">
                 <strong>Width</strong>
-
                 <span th:text="${item.width != null
                                 ? item.width + ' cm'
                                 : 'Not specified'}">
@@ -440,7 +475,6 @@
 
             <div class="detail">
                 <strong>Height</strong>
-
                 <span th:text="${item.height != null
                                 ? item.height + ' cm'
                                 : 'Not specified'}">
@@ -450,7 +484,6 @@
 
             <div class="detail">
                 <strong>Quantity</strong>
-
                 <span th:text="${item.quantity}">
                     4
                 </span>
@@ -460,12 +493,10 @@
                 <strong>Received</strong>
 
                 <span th:if="${item.receivedAt != null}"
-                      th:text="${#temporals.format(item.receivedAt, 'yyyy-MM-dd HH:mm')}">
+                      th:text="${#temporals.format(
+                              item.receivedAt,
+                              'yyyy-MM-dd HH:mm')}">
                     2026-10-08 13:42
-                </span>
-
-                <span th:if="${item.receivedAt == null}">
-                    Not received
                 </span>
             </div>
 
@@ -476,17 +507,12 @@
                       th:text="${item.requiredCompletionDate}">
                     2026-10-15
                 </span>
-
-                <span th:if="${item.requiredCompletionDate == null}">
-                    Date not set
-                </span>
             </div>
 
             <div class="detail">
                 <strong>Work Status</strong>
 
-                <span class="status"
-                      th:text="${item.workStatus}">
+                <span class="status completed-status">
                     COMPLETED
                 </span>
             </div>
@@ -495,7 +521,9 @@
                 <strong>Completed Date</strong>
 
                 <span th:if="${item.completedAt != null}"
-                      th:text="${#temporals.format(item.completedAt, 'yyyy-MM-dd HH:mm')}">
+                      th:text="${#temporals.format(
+                              item.completedAt,
+                              'yyyy-MM-dd HH:mm')}">
                     2026-10-08 13:43
                 </span>
 
@@ -503,6 +531,7 @@
                     Not available
                 </span>
             </div>
+
         </div>
 
         <div class="detail"
@@ -510,28 +539,34 @@
 
             <strong>Fabric and Color</strong>
 
-            <div th:if="${item.fabrics != null and !#lists.isEmpty(item.fabrics)}"
+            <div th:if="${item.fabrics != null
+                         and !#lists.isEmpty(item.fabrics)}"
                  th:each="fabric : ${item.fabrics}"
                  class="fabric">
 
                 <span th:text="${fabric.fabricName}">
-                    Jali Nakhi
+                    Fabric name
                 </span>
 
-                <span th:if="${fabric.color != null and !fabric.color.isBlank()}"
+                <span th:if="${fabric.color != null
+                              and !fabric.color.isBlank()}"
                       th:text="${' - ' + fabric.color}">
                     - Green
                 </span>
 
-                <div th:if="${fabric.notes != null and !fabric.notes.isBlank()}"
+                <div th:if="${fabric.notes != null
+                             and !fabric.notes.isBlank()}"
                      th:text="${fabric.notes}">
                     Fabric notes
                 </div>
+
             </div>
 
-            <span th:if="${item.fabrics == null or #lists.isEmpty(item.fabrics)}">
+            <span th:if="${item.fabrics == null
+                          or #lists.isEmpty(item.fabrics)}">
                 No fabric information provided.
             </span>
+
         </div>
 
         <div class="detail"
@@ -539,21 +574,25 @@
 
             <strong>Design</strong>
 
-            <span th:text="${item.design != null and !item.design.isBlank()
+            <span th:text="${item.design != null
+                            and !item.design.isBlank()
                             ? item.design
                             : 'Not specified'}">
-                Ringi Sada
+                Design
             </span>
+
         </div>
 
         <div class="notes"
-             th:if="${item.specialNotes != null and !item.specialNotes.isBlank()}">
+             th:if="${item.specialNotes != null
+                     and !item.specialNotes.isBlank()}">
 
             <strong>Special Notes</strong>
 
             <p th:text="${item.specialNotes}">
                 Special instructions
             </p>
+
         </div>
 
         <p class="completed-message">
