@@ -53,19 +53,16 @@
             margin-top: 0;
         }
 
-        h3 {
-            margin-top: 0;
-        }
-
         .store-name {
             color: #536174;
         }
 
-        .top-actions {
+        .top-actions,
+        .button-row {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
-            margin: 20px 0;
+            margin: 18px 0;
         }
 
         .button,
@@ -125,10 +122,6 @@
             font-size: 1.05rem;
         }
 
-        form {
-            margin-top: 18px;
-        }
-
         label {
             display: block;
             margin-top: 15px;
@@ -151,38 +144,46 @@
             resize: vertical;
         }
 
-        .form-button {
-            margin-top: 20px;
+        .help-text,
+        .muted {
+            color: #667085;
+            font-size: 0.9rem;
+            line-height: 1.5;
         }
 
-        .inventory-row {
-            background: #f8fafc;
+        .product-section {
+            margin-top: 18px;
+            padding: 16px;
             border: 1px solid #dbe3ec;
             border-radius: 10px;
-            padding: 16px;
-            margin-top: 14px;
+            background: #f8fafc;
         }
 
-        .inventory-row-header {
+        .inventory-row,
+        .new-product-row {
+            padding: 16px;
+            margin-top: 14px;
+            border: 1px solid #dbe3ec;
+            border-radius: 10px;
+            background: white;
+        }
+
+        .row-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             gap: 12px;
         }
 
-        .inventory-row-header strong {
+        .row-header strong {
             color: #173b68;
         }
 
-        .product-search {
-            margin-top: 12px;
-        }
-
         .purchase-results {
+            margin-top: 8px;
             border: 1px solid #dbe3ec;
             border-radius: 8px;
             background: white;
-            margin-top: 8px;
         }
 
         .purchase-result {
@@ -218,24 +219,15 @@
         }
 
         .remove-product {
-            border: 0;
             background: #b42318;
             color: white;
-            border-radius: 6px;
             padding: 7px 10px;
-            cursor: pointer;
         }
 
         .add-product {
             margin-top: 16px;
             background: #173b68;
             color: white;
-        }
-
-        .help-text {
-            color: #667085;
-            font-size: 0.9rem;
-            line-height: 1.5;
         }
 
         .table-wrapper {
@@ -261,21 +253,9 @@
             color: #173b68;
         }
 
-        .muted {
-            color: #667085;
-        }
-
         .supplier-link {
             color: #173b68;
             font-weight: bold;
-        }
-
-        .history-title {
-            margin-top: 28px;
-        }
-
-        .inline-form {
-            display: inline;
         }
     </style>
 </head>
@@ -356,7 +336,7 @@
                 <textarea id="supplierNotes"
                           name="notes"></textarea>
 
-                <button class="button primary form-button"
+                <button class="button primary"
                         type="submit">
                     Save Supplier
                 </button>
@@ -365,11 +345,6 @@
 
         <details>
             <summary>Record Supplier Purchase</summary>
-
-            <p class="help-text">
-                Select the inventory products bought from the supplier.
-                The purchased meterage will be added automatically.
-            </p>
 
             <form th:action="@{/supplier-purchases}"
                   method="post">
@@ -384,7 +359,6 @@
 
                 <label for="purchaseSupplier">
                     Supplier
-                    <span style="color: #b42318;">*</span>
                 </label>
 
                 <select id="purchaseSupplier"
@@ -398,7 +372,7 @@
                     <option th:each="supplier : ${suppliers}"
                             th:value="${supplier.id}"
                             th:text="${supplier.name}">
-                        Haji Fridoon
+                        Haji Nawroz
                     </option>
                 </select>
 
@@ -408,11 +382,11 @@
 
                 <input id="purchaseDate"
                        name="purchaseDate"
-                       type="datetime-local">
+                       type="datetime-local"
+                       required>
 
                 <label for="totalAmount">
                     Total Purchase Amount
-                    <span style="color: #b42318;">*</span>
                 </label>
 
                 <input id="totalAmount"
@@ -424,7 +398,6 @@
 
                 <label for="purchaseCurrency">
                     Currency
-                    <span style="color: #b42318;">*</span>
                 </label>
 
                 <select id="purchaseCurrency"
@@ -435,106 +408,215 @@
                     <option value="USD">USD</option>
                 </select>
 
-                <h3 class="history-title">
-                    Products Bought
-                </h3>
+                <label for="productMode">
+                    Product Type
+                </label>
 
-                <div id="purchase-products">
+                <select id="productMode"
+                        onchange="changeProductMode()">
 
-                    <div class="inventory-row">
+                    <option value="existing">
+                        Existing Inventory Product
+                    </option>
 
-                        <div class="inventory-row-header">
-                            <strong>Product 1</strong>
+                    <option value="new">
+                        New Inventory Product
+                    </option>
+                </select>
 
-                            <button class="remove-product"
-                                    type="button"
-                                    onclick="removePurchaseProduct(this)"
-                                    style="display: none;">
-                                Remove
-                            </button>
-                        </div>
+                <section id="existingProductSection"
+                         class="product-section">
 
-                        <label>
-                            Search Inventory Product
-                        </label>
+                    <h3>Existing Inventory Product</h3>
 
-                        <input class="product-search"
-                               type="search"
-                               placeholder="Search by name, color, or code"
-                               oninput="searchPurchaseProducts(this)">
+                    <p class="help-text">
+                        Search and select each existing product bought
+                        in this purchase.
+                    </p>
 
-                        <div class="purchase-results">
+                    <div id="purchase-products">
 
-                            <button class="purchase-result"
-                                    type="button"
-                                    th:each="product : ${inventoryProducts}"
-                                    th:data-product-id="${product.id}"
-                                    th:data-search="|${product.productName} ${product.color} ${product.location} ${product.productCode}|"
-                                    onclick="selectPurchaseProduct(this)">
+                        <div class="inventory-row">
 
-                                <strong th:text="${product.productName}">
-                                    Velvet fabric
-                                </strong>
+                            <div class="row-header">
+                                <strong>Existing Product 1</strong>
 
-                                —
-                                <span th:text="${product.color != null
-                                                 ? product.color
-                                                 : 'No color'}">
-                                    Dark blue
-                                </span>
-
-                                —
-                                <span th:text="${product.productCode}">
-                                    VEL-BLU-001
-                                </span>
-                            </button>
-
-                            <div class="purchase-no-results">
-                                No matching product found.
+                                <button class="remove-product"
+                                        type="button"
+                                        onclick="removePurchaseProduct(this)"
+                                        style="display: none;">
+                                    Remove
+                                </button>
                             </div>
+
+                            <label>
+                                Search Product
+                            </label>
+
+                            <input class="product-search"
+                                   type="search"
+                                   placeholder="Search by name, color, or code"
+                                   oninput="searchPurchaseProducts(this)">
+
+                            <div class="purchase-results">
+
+                                <button class="purchase-result"
+                                        type="button"
+                                        th:each="product : ${inventoryProducts}"
+                                        th:data-product-id="${product.id}"
+                                        th:data-search="|${product.productName} ${product.color} ${product.location} ${product.productCode}|"
+                                        onclick="selectPurchaseProduct(this)">
+
+                                    <strong th:text="${product.productName}">
+                                        Velvet fabric
+                                    </strong>
+
+                                    —
+                                    <span th:text="${product.color != null
+                                                     ? product.color
+                                                     : 'No color'}">
+                                        Dark blue
+                                    </span>
+
+                                    —
+                                    <span th:text="${product.productCode}">
+                                        VEL-BLU-001
+                                    </span>
+                                </button>
+
+                                <div class="purchase-no-results">
+                                    No matching product found.
+                                </div>
+                            </div>
+
+                            <input type="hidden"
+                                   name="inventoryProductIds"
+                                   class="selected-product-id existing-input">
+
+                            <span class="selected-product"></span>
+
+                            <label>
+                                Purchased Meterage
+                            </label>
+
+                            <input name="purchaseMeterages"
+                                   class="existing-required"
+                                   type="number"
+                                   min="0.01"
+                                   step="0.01"
+                                   required>
+
+                            <label>
+                                Price Per Meter
+                            </label>
+
+                            <input name="pricePerMeters"
+                                   class="existing-required"
+                                   type="number"
+                                   min="0"
+                                   step="0.01"
+                                   required>
                         </div>
-
-                        <input type="hidden"
-                               name="inventoryProductIds"
-                               class="selected-product-id">
-
-                        <span class="selected-product"></span>
-
-                        <label>
-                            Purchased Meterage
-                        </label>
-
-                        <input name="purchaseMeterages"
-                               type="number"
-                               min="0.01"
-                               step="0.01"
-                               required>
-
-                        <label>
-                            Price Per Meter
-                        </label>
-
-                        <input name="pricePerMeters"
-                               type="number"
-                               min="0"
-                               step="0.01"
-                               required>
                     </div>
-                </div>
 
-                <button class="button add-product"
-                        type="button"
-                        onclick="addPurchaseProduct()">
-                    + Add Another Product
-                </button>
+                    <button class="button add-product"
+                            type="button"
+                            onclick="addPurchaseProduct()">
+                        + Add Another Existing Product
+                    </button>
+                </section>
+
+                <section id="newProductSection"
+                         class="product-section"
+                         style="display: none;">
+
+                    <h3>New Inventory Product</h3>
+
+                    <p class="help-text">
+                        This product will be created in Inventory
+                        automatically after saving the purchase.
+                    </p>
+
+                    <div id="new-products">
+
+                        <div class="new-product-row">
+
+                            <div class="row-header">
+                                <strong>New Product 1</strong>
+
+                                <button class="remove-product"
+                                        type="button"
+                                        onclick="removeNewProduct(this)"
+                                        style="display: none;">
+                                    Remove
+                                </button>
+                            </div>
+
+                            <label>
+                                Product Name
+                            </label>
+
+                            <input name="newProductNames"
+                                   class="new-required"
+                                   type="text">
+
+                            <label>
+                                Color
+                            </label>
+
+                            <input name="newProductColors"
+                                   type="text">
+
+                            <label>
+                                Purchased Meterage
+                            </label>
+
+                            <input name="newProductMeterages"
+                                   class="new-required"
+                                   type="number"
+                                   min="0.01"
+                                   step="0.01">
+
+                            <label>
+                                Storage Location
+                            </label>
+
+                            <input name="newProductLocations"
+                                   type="text">
+
+                            <label>
+                                Product Code
+                            </label>
+
+                            <input name="newProductCodes"
+                                   class="new-required"
+                                   type="text">
+
+                            <label>
+                                Price Per Meter
+                            </label>
+
+                            <input name="newProductPricesPerMeter"
+                                   class="new-required"
+                                   type="number"
+                                   min="0"
+                                   step="0.01">
+                        </div>
+                    </div>
+
+                    <button class="button add-product"
+                            type="button"
+                            onclick="addNewProduct()">
+                        + Add Another New Product
+                    </button>
+                </section>
 
                 <label for="productInformation">
                     Additional Product Information
                 </label>
 
                 <textarea id="productInformation"
-                          name="productInformation"
-                          placeholder="Add any extra information about this purchase"></textarea>
+                          name="productInformation"></textarea>
 
                 <label for="purchaseNotes">
                     Notes
@@ -543,7 +625,7 @@
                 <textarea id="purchaseNotes"
                           name="notes"></textarea>
 
-                <button class="button primary form-button"
+                <button class="button primary"
                         type="submit">
                     Save Purchase
                 </button>
@@ -579,7 +661,7 @@
                     <option th:each="supplier : ${suppliers}"
                             th:value="${supplier.id}"
                             th:text="${supplier.name}">
-                        Haji Fridoon
+                        Haji Nawroz
                     </option>
                 </select>
 
@@ -589,7 +671,8 @@
 
                 <input id="paymentDate"
                        name="paymentDate"
-                       type="datetime-local">
+                       type="datetime-local"
+                       required>
 
                 <label for="paymentAmount">
                     Amount
@@ -630,13 +713,12 @@
                 <textarea id="paymentNotes"
                           name="notes"></textarea>
 
-                <button class="button primary form-button"
+                <button class="button primary"
                         type="submit">
                     Save Payment
                 </button>
             </form>
         </details>
-
     </section>
 
     <section class="card">
@@ -677,7 +759,7 @@
                                supplierId=${supplier.id}
                            )}"
                            th:text="${supplier.name}">
-                            Haji Fridoon
+                            Haji Nawroz
                         </a>
                     </td>
 
@@ -704,7 +786,6 @@
                 </tbody>
             </table>
         </div>
-
     </section>
 
     <section class="card">
@@ -732,15 +813,15 @@
                             purchase.purchaseDate,
                             'yyyy-MM-dd HH:mm'
                         )}">
-                        2026-10-09 13:00
+                        2026-10-10 10:00
                     </td>
 
                     <td th:text="${purchase.supplier.name}">
-                        Haji Fridoon
+                        Haji Nawroz
                     </td>
 
                     <td th:text="${purchase.totalAmount}">
-                        120000.00
+                        3500.00
                     </td>
 
                     <td th:text="${purchase.amountPaid}">
@@ -748,7 +829,7 @@
                     </td>
 
                     <td th:text="${purchase.remainingDebt}">
-                        120000.00
+                        3500.00
                     </td>
 
                     <td th:text="${purchase.currency}">
@@ -762,7 +843,7 @@
                             </span>
                             —
                             <span th:text="${item.meterage}">
-                                35
+                                10
                             </span>
                             meters
                         </div>
@@ -788,7 +869,6 @@
                 </tbody>
             </table>
         </div>
-
     </section>
 
     <section class="card">
@@ -815,15 +895,15 @@
                             payment.paymentDate,
                             'yyyy-MM-dd HH:mm'
                         )}">
-                        2026-10-09 14:00
+                        2026-10-10 11:00
                     </td>
 
                     <td th:text="${payment.supplier.name}">
-                        Haji Fridoon
+                        Haji Nawroz
                     </td>
 
                     <td th:text="${payment.amount}">
-                        50000.00
+                        1000.00
                     </td>
 
                     <td th:text="${payment.currency}">
@@ -853,12 +933,58 @@
                 </tbody>
             </table>
         </div>
-
     </section>
 
 </main>
 
 <script>
+    function changeProductMode() {
+        const mode =
+            document.getElementById("productMode").value;
+
+        const existingSection =
+            document.getElementById("existingProductSection");
+
+        const newSection =
+            document.getElementById("newProductSection");
+
+        const existingFields =
+            document.querySelectorAll(
+                ".existing-required, .existing-input"
+            );
+
+        const newFields =
+            document.querySelectorAll(".new-required");
+
+        if (mode === "new") {
+            existingSection.style.display = "none";
+            newSection.style.display = "block";
+
+            existingFields.forEach(function (field) {
+                field.required = false;
+                field.disabled = true;
+            });
+
+            newFields.forEach(function (field) {
+                field.required = true;
+                field.disabled = false;
+            });
+        } else {
+            existingSection.style.display = "block";
+            newSection.style.display = "none";
+
+            existingFields.forEach(function (field) {
+                field.required = true;
+                field.disabled = false;
+            });
+
+            newFields.forEach(function (field) {
+                field.required = false;
+                field.disabled = true;
+            });
+        }
+    }
+
     function searchPurchaseProducts(searchInput) {
         const row = searchInput.closest(".inventory-row");
         const results = row.querySelectorAll(".purchase-result");
@@ -891,23 +1017,18 @@
     function selectPurchaseProduct(result) {
         const row = result.closest(".inventory-row");
 
-        const hiddenInput =
-            row.querySelector(".selected-product-id");
+        row.querySelector(".selected-product-id").value =
+            result.dataset.productId;
 
-        const selectedProduct =
+        const selected =
             row.querySelector(".selected-product");
 
-        const searchInput =
-            row.querySelector(".product-search");
-
-        hiddenInput.value = result.dataset.productId;
-
-        selectedProduct.textContent =
+        selected.textContent =
             "Selected: " + result.textContent.trim();
 
-        selectedProduct.style.display = "block";
+        selected.style.display = "block";
 
-        searchInput.value =
+        row.querySelector(".product-search").value =
             result.querySelector("strong").textContent.trim();
 
         row.querySelectorAll(".purchase-result")
@@ -929,12 +1050,12 @@
         const newRow =
             firstRow.cloneNode(true);
 
-        const productNumber =
+        const number =
             container.querySelectorAll(".inventory-row").length + 1;
 
         newRow.querySelector(
-            ".inventory-row-header strong"
-        ).textContent = "Product " + productNumber;
+            ".row-header strong"
+        ).textContent = "Existing Product " + number;
 
         newRow.querySelector(".product-search").value = "";
         newRow.querySelector(".selected-product-id").value = "";
@@ -981,10 +1102,65 @@
         container.querySelectorAll(".inventory-row")
             .forEach(function (row, index) {
                 row.querySelector(
-                    ".inventory-row-header strong"
-                ).textContent = "Product " + (index + 1);
+                    ".row-header strong"
+                ).textContent =
+                    "Existing Product " + (index + 1);
             });
     }
+
+    function addNewProduct() {
+        const container =
+            document.getElementById("new-products");
+
+        const firstRow =
+            container.querySelector(".new-product-row");
+
+        const newRow =
+            firstRow.cloneNode(true);
+
+        const number =
+            container.querySelectorAll(".new-product-row").length + 1;
+
+        newRow.querySelector(
+            ".row-header strong"
+        ).textContent = "New Product " + number;
+
+        newRow.querySelectorAll("input")
+            .forEach(function (input) {
+                input.value = "";
+            });
+
+        newRow.querySelector(".remove-product").style.display =
+            "inline-block";
+
+        container.appendChild(newRow);
+
+        changeProductMode();
+    }
+
+    function removeNewProduct(button) {
+        const container =
+            document.getElementById("new-products");
+
+        const rows =
+            container.querySelectorAll(".new-product-row");
+
+        if (rows.length <= 1) {
+            return;
+        }
+
+        button.closest(".new-product-row").remove();
+
+        container.querySelectorAll(".new-product-row")
+            .forEach(function (row, index) {
+                row.querySelector(
+                    ".row-header strong"
+                ).textContent =
+                    "New Product " + (index + 1);
+            });
+    }
+
+    changeProductMode();
 </script>
 
 </body>

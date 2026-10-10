@@ -27,7 +27,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Controller
 public class SupplierPurchaseController {
@@ -81,9 +84,34 @@ public class SupplierPurchaseController {
             @RequestParam String currency,
             @RequestParam(required = false) String productInformation,
             @RequestParam(required = false) String notes,
-            @RequestParam(required = false) List<Long> inventoryProductIds,
-            @RequestParam(required = false) List<BigDecimal> purchaseMeterages,
-            @RequestParam(required = false) List<BigDecimal> pricePerMeters,
+
+            @RequestParam(required = false)
+            List<Long> inventoryProductIds,
+
+            @RequestParam(required = false)
+            List<BigDecimal> purchaseMeterages,
+
+            @RequestParam(required = false)
+            List<BigDecimal> pricePerMeters,
+
+            @RequestParam(required = false)
+            List<String> newProductNames,
+
+            @RequestParam(required = false)
+            List<String> newProductColors,
+
+            @RequestParam(required = false)
+            List<BigDecimal> newProductMeterages,
+
+            @RequestParam(required = false)
+            List<String> newProductLocations,
+
+            @RequestParam(required = false)
+            List<String> newProductCodes,
+
+            @RequestParam(required = false)
+            List<BigDecimal> newProductPricesPerMeter,
+
             Principal principal) {
 
         User manager = getLoggedInManager(principal);
@@ -104,21 +132,96 @@ public class SupplierPurchaseController {
                                 "Supplier not found"
                         ));
 
+        List<Long> productIds = copyList(inventoryProductIds);
+        List<BigDecimal> meterages = copyList(purchaseMeterages);
+        List<BigDecimal> prices = copyList(pricePerMeters);
+
+        List<String> names = copyList(newProductNames);
+        List<String> colors = copyList(newProductColors);
+        List<BigDecimal> newMeterages =
+                copyList(newProductMeterages);
+        List<String> locations =
+                copyList(newProductLocations);
+        List<String> codes =
+                copyList(newProductCodes);
+        List<BigDecimal> newPrices =
+                copyList(newProductPricesPerMeter);
+
         validatePurchase(
                 totalAmount,
                 currency,
-                inventoryProductIds,
-                purchaseMeterages,
-                pricePerMeters
+                productIds,
+                meterages,
+                prices,
+                names,
+                colors,
+                newMeterages,
+                locations,
+                codes,
+                newPrices
         );
 
-        SupplierPurchase purchase = new SupplierPurchase();
+        Set<Long> newlyCreatedProductIds =
+                new HashSet<>();
+
+        for (int index = 0; index < names.size(); index++) {
+
+            String cleanedCode = codes.get(index).trim();
+
+            if (inventoryProductRepository
+                    .existsByProductCodeIgnoreCase(cleanedCode)) {
+
+                throw new IllegalArgumentException(
+                        "Product code is already being used: "
+                                + cleanedCode
+                );
+            }
+
+            InventoryProduct newProduct =
+                    new InventoryProduct();
+
+            newProduct.setProductName(
+                    names.get(index).trim()
+            );
+            newProduct.setColor(
+                    cleanValue(colors.get(index))
+            );
+            newProduct.setOriginalMeterage(
+                    newMeterages.get(index)
+            );
+            newProduct.setMeterage(
+                    newMeterages.get(index)
+            );
+            newProduct.setLocation(
+                    cleanValue(locations.get(index))
+            );
+            newProduct.setProductCode(cleanedCode);
+            newProduct.setStore(selectedStore);
+            newProduct.setAddedBy(manager);
+
+            InventoryProduct savedProduct =
+                    inventoryProductRepository.save(newProduct);
+
+            productIds.add(savedProduct.getId());
+            meterages.add(newMeterages.get(index));
+            prices.add(newPrices.get(index));
+
+            newlyCreatedProductIds.add(savedProduct.getId());
+        }
+
+        SupplierPurchase purchase =
+                new SupplierPurchase();
+
         purchase.setSupplier(supplier);
-        purchase.setPurchaseDate(parseDate(purchaseDate));
+        purchase.setPurchaseDate(
+                parseDate(purchaseDate)
+        );
         purchase.setTotalAmount(totalAmount);
         purchase.setAmountPaid(BigDecimal.ZERO);
         purchase.setRemainingDebt(totalAmount);
-        purchase.setCurrency(currency.trim().toUpperCase());
+        purchase.setCurrency(
+                currency.trim().toUpperCase()
+        );
         purchase.setProductInformation(productInformation);
         purchase.setNotes(notes);
         purchase.setRecordedBy(manager);
@@ -126,13 +229,15 @@ public class SupplierPurchaseController {
         purchaseRepository.save(purchase);
 
         for (int index = 0;
-             index < inventoryProductIds.size();
+             index < productIds.size();
              index++) {
+
+            Long productId = productIds.get(index);
 
             InventoryProduct product =
                     inventoryProductRepository
                             .findByIdAndStoreId(
-                                    inventoryProductIds.get(index),
+                                    productId,
                                     selectedStore.getId()
                             )
                             .orElseThrow(() ->
@@ -141,47 +246,40 @@ public class SupplierPurchaseController {
                                     ));
 
             BigDecimal meterage =
-                    purchaseMeterages.get(index);
+                    meterages.get(index);
 
             BigDecimal pricePerMeter =
-                    pricePerMeters.get(index);
+                    prices.get(index);
 
-            BigDecimal original =
-                    product.getOriginalMeterage();
+            if (!newlyCreatedProductIds.contains(productId)) {
 
-            if (original == null) {
-                original = product.getMeterage();
+                BigDecimal original =
+                        product.getOriginalMeterage();
+
+                if (original == null) {
+                    original = product.getMeterage();
+                }
+
+                BigDecimal available =
+                        product.getMeterage();
+
+                if (available == null) {
+                    available = BigDecimal.ZERO;
+                }
+
+                product.setOriginalMeterage(
+                        original.add(meterage)
+                );
+
+                product.setMeterage(
+                        available.add(meterage)
+                );
+
+                product.setLastEditedBy(manager);
+                product.setLastEditedAt(LocalDateTime.now());
+
+                inventoryProductRepository.save(product);
             }
-
-            BigDecimal available =
-                    product.getMeterage();
-
-            if (available == null) {
-                available = BigDecimal.ZERO;
-            }
-
-            product.setOriginalMeterage(
-                    original.add(meterage)
-            );
-
-            product.setMeterage(
-                    available.add(meterage)
-            );
-
-            product.setLastEditedBy(manager);
-            product.setLastEditedAt(LocalDateTime.now());
-
-            inventoryProductRepository.save(product);
-
-            SupplierPurchaseItem item =
-                    new SupplierPurchaseItem();
-
-            item.setPurchase(purchase);
-            item.setInventoryProduct(product);
-            item.setMeterage(meterage);
-            item.setPricePerMeter(pricePerMeter);
-
-            purchase.getPurchaseItems().add(item);
 
             InventoryMovement movement =
                     new InventoryMovement();
@@ -196,6 +294,16 @@ public class SupplierPurchaseController {
             movement.setRecordedBy(manager);
 
             movementRepository.save(movement);
+
+            SupplierPurchaseItem item =
+                    new SupplierPurchaseItem();
+
+            item.setPurchase(purchase);
+            item.setInventoryProduct(product);
+            item.setMeterage(meterage);
+            item.setPricePerMeter(pricePerMeter);
+
+            purchase.getPurchaseItems().add(item);
         }
 
         purchaseRepository.save(purchase);
@@ -209,9 +317,15 @@ public class SupplierPurchaseController {
     private void validatePurchase(
             BigDecimal totalAmount,
             String currency,
-            List<Long> productIds,
-            List<BigDecimal> meterages,
-            List<BigDecimal> prices) {
+            List<Long> existingIds,
+            List<BigDecimal> existingMeterages,
+            List<BigDecimal> existingPrices,
+            List<String> names,
+            List<String> colors,
+            List<BigDecimal> newMeterages,
+            List<String> locations,
+            List<String> codes,
+            List<BigDecimal> newPrices) {
 
         if (totalAmount == null
                 || totalAmount.compareTo(BigDecimal.ZERO) <= 0) {
@@ -230,45 +344,107 @@ public class SupplierPurchaseController {
             );
         }
 
-        if (productIds == null
-                || productIds.isEmpty()
-                || meterages == null
-                || prices == null
-                || productIds.size() != meterages.size()
-                || productIds.size() != prices.size()) {
+        if (existingIds.size() != existingMeterages.size()
+                || existingIds.size() != existingPrices.size()) {
 
             throw new IllegalArgumentException(
-                    "Every purchase product must have meterage and price"
+                    "Each existing product must have meterage and price"
             );
         }
 
         for (int index = 0;
-             index < productIds.size();
+             index < existingIds.size();
              index++) {
 
-            if (productIds.get(index) == null) {
+            if (existingIds.get(index) == null) {
                 throw new IllegalArgumentException(
-                        "Please select an inventory product"
+                        "Please select an existing product"
                 );
             }
 
-            if (meterages.get(index) == null
-                    || meterages.get(index)
-                    .compareTo(BigDecimal.ZERO) <= 0) {
+            validatePositive(
+                    existingMeterages.get(index),
+                    "Purchased meterage"
+            );
+
+            validateNonNegative(
+                    existingPrices.get(index),
+                    "Price per meter"
+            );
+        }
+
+        if (names.size() != colors.size()
+                || names.size() != newMeterages.size()
+                || names.size() != locations.size()
+                || names.size() != codes.size()
+                || names.size() != newPrices.size()) {
+
+            throw new IllegalArgumentException(
+                    "Each new product must have all required fields"
+            );
+        }
+
+        for (int index = 0;
+             index < names.size();
+             index++) {
+
+            if (names.get(index) == null
+                    || names.get(index).isBlank()) {
 
                 throw new IllegalArgumentException(
-                        "Purchased meterage must be greater than zero"
+                        "New product name is required"
                 );
             }
 
-            if (prices.get(index) == null
-                    || prices.get(index)
-                    .compareTo(BigDecimal.ZERO) < 0) {
+            validatePositive(
+                    newMeterages.get(index),
+                    "New product meterage"
+            );
+
+            if (codes.get(index) == null
+                    || codes.get(index).isBlank()) {
 
                 throw new IllegalArgumentException(
-                        "Price per meter cannot be negative"
+                        "New product code is required"
                 );
             }
+
+            validateNonNegative(
+                    newPrices.get(index),
+                    "New product price per meter"
+            );
+        }
+
+        if (existingIds.isEmpty() && names.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "Add at least one product to this purchase"
+            );
+        }
+    }
+
+    private void validatePositive(
+            BigDecimal value,
+            String fieldName) {
+
+        if (value == null
+                || value.compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new IllegalArgumentException(
+                    fieldName + " must be greater than zero"
+            );
+        }
+    }
+
+    private void validateNonNegative(
+            BigDecimal value,
+            String fieldName) {
+
+        if (value == null
+                || value.compareTo(BigDecimal.ZERO) < 0) {
+
+            throw new IllegalArgumentException(
+                    fieldName + " cannot be negative"
+            );
         }
     }
 
@@ -299,12 +475,27 @@ public class SupplierPurchaseController {
 
     private Store findStore(String storeCode) {
         return storeRepository.findByCode(
-                        storeCode.toLowerCase()
-                )
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Store not found"
-                        ));
+                storeCode.toLowerCase()
+        ).orElseThrow(() ->
+                new IllegalArgumentException(
+                        "Store not found"
+                ));
+    }
+
+    private String cleanValue(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+
+        return value.trim();
+    }
+
+    private <T> List<T> copyList(List<T> values) {
+        if (values == null) {
+            return new ArrayList<>();
+        }
+
+        return new ArrayList<>(values);
     }
 
     private void recalculateSupplierBalances(
