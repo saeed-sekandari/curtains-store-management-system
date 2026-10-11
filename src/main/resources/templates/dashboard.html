@@ -1,11 +1,9 @@
 <!DOCTYPE html>
-<html lang="en"
-      xmlns:th="http://www.thymeleaf.org">
+<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <title>Manager Dashboard</title>
 
@@ -24,7 +22,7 @@
         .topbar {
             background: #173b68;
             color: white;
-            padding: 27px 7%;
+            padding: 20px 7%;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -32,99 +30,182 @@
 
         .topbar h1 {
             margin: 0;
-            font-size: 1.6rem;
+            font-size: 1.45rem;
         }
 
-        .logout-button {
+        .logout {
+            border: 1px solid white;
+            border-radius: 7px;
+            padding: 9px 15px;
             background: transparent;
             color: white;
-            border: 1px solid white;
-            border-radius: 8px;
-            padding: 10px 18px;
-            font-size: 1rem;
             cursor: pointer;
+            font-size: 0.95rem;
         }
 
         main {
             max-width: 1100px;
-            margin: 50px auto;
-            padding: 0 24px;
+            margin: 38px auto;
+            padding: 0 22px;
         }
 
-        h2 {
-            color: #172033;
-            margin-bottom: 8px;
+        h2,
+        h3 {
+            color: #173b68;
         }
 
-        .intro {
-            color: #536174;
-            font-size: 1.05rem;
+        .welcome,
+        .card p,
+        .period {
+            color: #667085;
         }
 
         .store-links,
         .quick-links {
             display: flex;
             flex-wrap: wrap;
-            gap: 12px;
-            margin: 25px 0;
+            gap: 10px;
+            margin: 22px 0;
         }
 
-        .store-link,
-        .quick-link {
+        .store-links a,
+        .quick-links a {
             text-decoration: none;
-            border: 1px solid #cbd5e1;
-            border-radius: 9px;
-            padding: 12px 18px;
-            color: #173b68;
-            background: white;
+            border-radius: 8px;
+            padding: 11px 15px;
         }
 
-        .store-link.selected {
+        .store-links a {
+            background: white;
+            border: 1px solid #cbd5e1;
+            color: #173b68;
+        }
+
+        .store-links a.selected {
             background: #173b68;
+            border-color: #173b68;
             color: white;
         }
 
-        .quick-link {
+        .quick-links a {
             background: #d69b2d;
             color: white;
+        }
+
+        .quick-links a:hover {
+            background: #b9801e;
+        }
+
+        .report-box {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 20px;
+            margin-top: 25px;
+        }
+
+        .report-box h3 {
+            margin-top: 0;
+        }
+
+        .report-form {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: end;
+            gap: 12px;
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .field label {
+            font-size: 0.88rem;
+            font-weight: bold;
+            color: #536174;
+        }
+
+        select,
+        .report-button {
+            min-height: 40px;
+            padding: 9px 11px;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            background: white;
+            font-size: 0.95rem;
+        }
+
+        .report-button {
+            background: #173b68;
+            color: white;
+            cursor: pointer;
             border: 0;
         }
 
-        .summary {
+        .summary-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 25px;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 18px;
             margin-top: 25px;
         }
 
         .card {
             background: white;
-            border-radius: 14px;
-            padding: 28px;
             border: 1px solid #e2e8f0;
-            box-shadow: 0 5px 18px rgba(25, 53, 87, .08);
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 4px 15px rgba(25, 53, 87, 0.06);
         }
 
         .card h3 {
             margin-top: 0;
-            color: #173b68;
-        }
-
-        .card p {
-            color: #667085;
-            line-height: 1.5;
+            margin-bottom: 8px;
         }
 
         .number {
+            margin: 16px 0 5px;
             color: #d69b2d;
-            font-size: 2.4rem;
+            font-size: 1.9rem;
             font-weight: bold;
-            margin: 20px 0 8px;
         }
 
-        .card-link {
+        .secondary-number {
+            color: #536174;
+            font-size: 0.95rem;
+        }
+
+        .net-card {
+            border: 2px solid #d69b2d;
+        }
+
+        .net-card .number {
             color: #173b68;
-            font-weight: bold;
+        }
+
+        @media (max-width: 600px) {
+            .topbar {
+                padding: 18px 20px;
+            }
+
+            .topbar h1 {
+                font-size: 1.15rem;
+            }
+
+            main {
+                margin-top: 25px;
+            }
+
+            .report-form {
+                display: grid;
+                grid-template-columns: 1fr;
+            }
+
+            select,
+            .report-button {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -132,22 +213,17 @@
 <body>
 
 <header class="topbar">
-
     <h1>Manager Dashboard</h1>
 
-    <form th:action="@{/logout}"
-          method="post">
-
+    <form th:action="@{/logout}" method="post">
         <input type="hidden"
                th:name="${_csrf.parameterName}"
                th:value="${_csrf.token}">
 
-        <button class="logout-button"
-                type="submit">
+        <button class="logout" type="submit">
             Log out
         </button>
     </form>
-
 </header>
 
 <main>
@@ -159,34 +235,26 @@
         </span>
     </h2>
 
-    <p class="intro">
-        Choose which store information you want to view.
+    <p class="welcome">
+        Review store activity and financial results.
     </p>
 
-    <div class="store-links">
-
-        <a class="store-link"
-           th:classappend="${selectedStoreCode == 'all'}
-                           ? ' selected'"
-           href="/dashboard?store=all">
+    <nav class="store-links">
+        <a href="/dashboard?store=all"
+           th:classappend="${selectedStoreCode == 'all'} ? ' selected'">
             All Stores
         </a>
 
-        <a class="store-link"
-           th:classappend="${selectedStoreCode == 'royal'}
-                           ? ' selected'"
-           href="/dashboard?store=royal">
+        <a href="/dashboard?store=royal"
+           th:classappend="${selectedStoreCode == 'royal'} ? ' selected'">
             Royal Curtains Store
         </a>
 
-        <a class="store-link"
-           th:classappend="${selectedStoreCode == 'kabul'}
-                           ? ' selected'"
-           href="/dashboard?store=kabul">
+        <a href="/dashboard?store=kabul"
+           th:classappend="${selectedStoreCode == 'kabul'} ? ' selected'">
             Kabul Dubai Curtains Store
         </a>
-
-    </div>
+    </nav>
 
     <h2>
         Viewing:
@@ -197,38 +265,156 @@
 
     <div class="quick-links">
 
-        <a class="quick-link"
-           href="/users">
-            Manage User Accounts
+        <a href="/users">
+            User Accounts
         </a>
 
-        <a class="quick-link"
-           th:if="${selectedStoreCode != 'all'}"
+        <a th:if="${selectedStoreCode != 'all'}"
            th:href="@{/customers(store=${selectedStoreCode})}">
-            Manage Customers
+            Customers
         </a>
 
-        <a class="quick-link"
-           th:if="${selectedStoreCode != 'all'}"
+        <a th:if="${selectedStoreCode != 'all'}"
            th:href="@{/orders(store=${selectedStoreCode})}">
-            Manage Orders
+            Orders
         </a>
 
-        <a class="quick-link"
-           th:href="@{/expenses(store=${selectedStoreCode})}">
-            Expenses &amp; Reports
+        <a th:href="@{/expenses(store=${selectedStoreCode})}">
+            Expenses & Reports
+        </a>
+
+        <a th:if="${selectedStoreCode != 'all'}"
+           th:href="@{/inventory(store=${selectedStoreCode})}">
+            Inventory
+        </a>
+
+        <a th:if="${selectedStoreCode != 'all'}"
+           th:href="@{/supplier-purchases(store=${selectedStoreCode})}">
+            Supplier Purchases
         </a>
 
     </div>
 
-    <section class="summary">
+    <section class="report-box">
+
+        <h3 th:text="${periodLabel}">
+            Monthly Report
+        </h3>
+
+        <p class="period">
+            Period:
+            <strong th:text="${reportStart}">
+                01 Mizan 1405
+            </strong>
+            to
+            <strong th:text="${reportEnd}">
+                30 Mizan 1405
+            </strong>
+        </p>
+
+        <form class="report-form"
+              th:action="@{/dashboard}"
+              method="get">
+
+            <input type="hidden"
+                   name="store"
+                   th:value="${selectedStoreCode}">
+
+            <div class="field">
+                <label for="period">
+                    Report Period
+                </label>
+
+                <select id="period"
+                        name="period">
+
+                    <option value="daily"
+                            th:selected="${period == 'daily'}">
+                        Daily
+                    </option>
+
+                    <option value="weekly"
+                            th:selected="${period == 'weekly'}">
+                        Weekly
+                    </option>
+
+                    <option value="monthly"
+                            th:selected="${period == 'monthly'}">
+                        Monthly
+                    </option>
+
+                    <option value="yearly"
+                            th:selected="${period == 'yearly'}">
+                        Yearly
+                    </option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="year">
+                    Afghan Year
+                </label>
+
+                <select id="year"
+                        name="year">
+
+                    <option th:each="availableYear : ${availableYears}"
+                            th:value="${availableYear}"
+                            th:text="${availableYear}"
+                            th:selected="${availableYear == selectedYear}">
+                        1405
+                    </option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="month">
+                    Afghan Month
+                </label>
+
+                <select id="month"
+                        name="month">
+
+                    <option th:each="availableMonth : ${availableMonths}"
+                            th:value="${availableMonth}"
+                            th:text="${monthNames[availableMonth - 1]}"
+                            th:selected="${availableMonth == selectedMonth}">
+                        Mizan
+                    </option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="day">
+                    Day
+                </label>
+
+                <select id="day"
+                        name="day">
+
+                    <option th:each="availableDay : ${availableDays}"
+                            th:value="${availableDay}"
+                            th:text="${availableDay}"
+                            th:selected="${availableDay == selectedDay}">
+                        18
+                    </option>
+                </select>
+            </div>
+
+            <button class="report-button"
+                    type="submit">
+                View Report
+            </button>
+        </form>
+    </section>
+
+    <section class="summary-grid">
 
         <article class="card">
-
-            <h3>Orders</h3>
+            <h3>Active Orders</h3>
 
             <p>
-                Orders for the selected store view.
+                Current orders that are not cancelled.
             </p>
 
             <div class="number"
@@ -237,21 +423,13 @@
             </div>
 
             <p>Orders</p>
-
-            <a class="card-link"
-               th:if="${selectedStoreCode != 'all'}"
-               th:href="@{/orders(store=${selectedStoreCode})}">
-                View Orders
-            </a>
-
         </article>
 
         <article class="card">
-
             <h3>Customers</h3>
 
             <p>
-                Customers for the selected store view.
+                Customers connected to this store view.
             </p>
 
             <div class="number"
@@ -260,32 +438,64 @@
             </div>
 
             <p>Customers</p>
-
-            <a class="card-link"
-               th:if="${selectedStoreCode != 'all'}"
-               th:href="@{/customers(store=${selectedStoreCode})}">
-                View Customers
-            </a>
-
         </article>
 
         <article class="card">
-
             <h3>Sales</h3>
 
             <p>
-                Sales based on the orders in the selected store view.
+                Sales from active orders.
             </p>
 
             <div class="number">
                 <span th:text="${totalSales}">
-                    0
+                    0.00
                 </span>
                 AFN
             </div>
 
-            <p>Total sales</p>
+            <p>Active order sales</p>
+        </article>
 
+        <article class="card">
+            <h3>Operating Expenses</h3>
+
+            <p>
+                Rent, transportation, employee payments, and other expenses.
+            </p>
+
+            <div class="number">
+                <span th:text="${totalExpensesAfn}">
+                    0.00
+                </span>
+                AFN
+            </div>
+
+            <div class="secondary-number">
+                <span th:text="${totalExpensesUsd}">
+                    0.00
+                </span>
+                USD separately
+            </div>
+        </article>
+
+        <article class="card net-card">
+            <h3>Net Result</h3>
+
+            <p>
+                Sales minus operating expenses.
+            </p>
+
+            <div class="number">
+                <span th:text="${netResultAfn}">
+                    0.00
+                </span>
+                AFN
+            </div>
+
+            <div class="secondary-number">
+                USD expenses remain separate.
+            </div>
         </article>
 
     </section>

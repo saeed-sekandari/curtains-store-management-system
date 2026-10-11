@@ -11,6 +11,7 @@ public interface SupplierPaymentRepository
 
     @EntityGraph(attributePaths = {
             "supplier",
+            "supplier.store",
             "recordedBy"
     })
     List<SupplierPayment> findBySupplierIdOrderByPaymentDateDesc(
@@ -19,10 +20,17 @@ public interface SupplierPaymentRepository
 
     @EntityGraph(attributePaths = {
             "supplier",
+            "supplier.store",
             "recordedBy"
     })
-    List<SupplierPayment>
-    findBySupplierStoreIdOrderByPaymentDateDesc(
+    List<SupplierPayment> findBySupplierStoreIdOrderByPaymentDateDesc(
             Long storeId
     );
+
+    @EntityGraph(attributePaths = {
+            "supplier",
+            "supplier.store",
+            "recordedBy"
+    })
+    List<SupplierPayment> findAllByOrderByPaymentDateDesc();
 }
