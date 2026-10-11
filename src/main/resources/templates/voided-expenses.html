@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Voided Financial Records</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            background: #f4f7fb;
+            color: #172033;
+            font-family: Arial, sans-serif;
+        }
+
+        .topbar {
+            background: #173b68;
+            color: white;
+            padding: 22px 7%;
+        }
+
+        .topbar h1 {
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        main {
+            max-width: 1250px;
+            margin: 35px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 24px;
+            border-radius: 14px;
+            box-shadow: 0 5px 18px rgba(25, 53, 87, .08);
+        }
+
+        h2 {
+            color: #173b68;
+        }
+
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .link-button {
+            display: inline-block;
+            padding: 11px 16px;
+            border-radius: 8px;
+            background: #d69b2d;
+            color: white;
+            text-decoration: none;
+        }
+
+        .link-button:hover {
+            background: #b9801e;
+        }
+
+        .notice {
+            padding: 14px;
+            margin: 18px 0;
+            border-radius: 8px;
+            background: #fff4e5;
+            color: #8a4b08;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            min-width: 1050px;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px;
+            border-bottom: 1px solid #e2e8f0;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #eef3f8;
+            color: #173b68;
+        }
+
+        .voided {
+            color: #b42318;
+            font-weight: bold;
+        }
+
+        .muted {
+            color: #667085;
+        }
+    </style>
+</head>
+
+<body>
+
+<header class="topbar">
+    <h1>Royal Curtains Store Management</h1>
+</header>
+
+<main>
+
+    <div class="actions">
+
+        <a class="link-button"
+           th:href="@{/expenses(store=${selectedStoreCode})}">
+            Back to Expense Reports
+        </a>
+
+        <a class="link-button"
+           th:href="@{/dashboard(store=${selectedStoreCode})}">
+            Back to Dashboard
+        </a>
+
+    </div>
+
+    <section class="card">
+
+        <h2>
+            Voided Financial Records —
+            <span th:text="${selectedStore}">
+                Royal Curtains Store
+            </span>
+        </h2>
+
+        <div class="notice">
+            These records were not deleted. They are kept for financial
+            history and audit purposes, but they are excluded from active
+            reports and totals.
+        </div>
+
+        <p class="muted"
+           th:if="${records.isEmpty()}">
+            There are no voided financial records.
+        </p>
+
+        <div class="table-wrapper"
+             th:if="${!records.isEmpty()}">
+
+            <table>
+
+                <thead>
+                <tr>
+                    <th>Original Date</th>
+                    <th>Store</th>
+                    <th>Category</th>
+                    <th>Worker or Recipient</th>
+                    <th>Amount</th>
+                    <th>Description</th>
+                    <th>Recorded By</th>
+                    <th>Status</th>
+                    <th>Void Reason</th>
+                    <th>Voided By</th>
+                    <th>Voided Date</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="record : ${records}">
+
+                    <td th:text="${T(
+                        com.royalcurtains.storemanagement.util.AfghanDateUtil
+                    ).format(record.expenseDate)}">
+                        18 Mizan 1405 15:40
+                    </td>
+
+                    <td th:text="${record.store.name}">
+                        Royal Curtains Store
+                    </td>
+
+                    <td th:text="${record.category}">
+                        RENT
+                    </td>
+
+                    <td>
+                        <span th:if="${record.worker != null}"
+                              th:text="${record.worker.fullName}">
+                            Ahmad Rahimi
+                        </span>
+
+                        <span th:if="${record.worker == null
+                                     and record.recipientName != null}"
+                              th:text="${record.recipientName}">
+                            Keraya Dokan
+                        </span>
+
+                        <span th:if="${record.worker == null
+                                     and record.recipientName == null}">
+                            Not provided
+                        </span>
+                    </td>
+
+                    <td>
+                        <strong th:text="${record.amount}">
+                            500.00
+                        </strong>
+
+                        <span th:text="${record.currency}">
+                            USD
+                        </span>
+                    </td>
+
+                    <td th:text="${record.description != null
+                                  and !record.description.isBlank()
+                                  ? record.description
+                                  : 'None'}">
+                        June payment
+                    </td>
+
+                    <td th:text="${record.recordedBy.fullName}">
+                        System Manager
+                    </td>
+
+                    <td class="voided"
+                        th:text="${record.status}">
+                        VOIDED
+                    </td>
+
+                    <td th:text="${record.voidReason}">
+                        Entered by mistake
+                    </td>
+
+                    <td th:text="${record.voidedBy.fullName}">
+                        System Manager
+                    </td>
+
+                    <td th:text="${T(
+                        com.royalcurtains.storemanagement.util.AfghanDateUtil
+                    ).format(record.voidedAt)}">
+                        18 Mizan 1405 16:05
+                    </td>
+
+                </tr>
+
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+</body>
+</html>

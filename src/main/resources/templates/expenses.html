@@ -51,6 +51,12 @@
             color: #173b68;
         }
 
+        label {
+            display: block;
+            margin: 14px 0 6px;
+            font-weight: bold;
+        }
+
         select,
         input,
         button {
@@ -75,17 +81,11 @@
             background: #0f2b4d;
         }
 
-        label {
-            display: block;
-            margin: 14px 0 6px;
-            font-weight: bold;
-        }
-
         .actions {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
-            margin-bottom: 24px;
+            margin-bottom: 12px;
         }
 
         .link-button {
@@ -95,6 +95,18 @@
             background: #d69b2d;
             color: white;
             text-decoration: none;
+        }
+
+        .link-button:hover {
+            background: #b9801e;
+        }
+
+        .history-link {
+            display: inline-block;
+            margin: 0 0 24px;
+            color: #173b68;
+            font-weight: bold;
+            text-decoration: underline;
         }
 
         .form-row {
@@ -194,6 +206,22 @@
             background: #8f1c13;
         }
 
+        .voided {
+            color: #b42318;
+            font-weight: bold;
+        }
+
+        details {
+            margin-top: 10px;
+        }
+
+        summary {
+            cursor: pointer;
+            color: #173b68;
+            font-weight: bold;
+            padding: 12px 0;
+        }
+
         .hidden {
             display: none;
         }
@@ -209,6 +237,7 @@
 <main>
 
     <div class="actions">
+
         <a class="link-button"
            th:href="@{/expenses/new(store=${selectedStoreCode})}">
             Record Expense or Payment
@@ -219,6 +248,11 @@
             Back to Dashboard
         </a>
     </div>
+
+    <a class="history-link"
+       href="#voided-records">
+        View voided records on this page
+    </a>
 
     <div class="message success"
          th:if="${success}"
@@ -456,7 +490,7 @@
 
     <section class="card">
 
-        <h2>Records for This Report</h2>
+        <h2>Active Records for This Report</h2>
 
         <p class="muted"
            th:if="${records.isEmpty()}">
@@ -568,6 +602,114 @@
                 </tbody>
             </table>
         </div>
+    </section>
+
+    <section class="card"
+             id="voided-records">
+
+        <details>
+
+            <summary>
+                Voided Records
+            </summary>
+
+            <p class="muted"
+               th:if="${voidedRecords.isEmpty()}">
+                No voided records.
+            </p>
+
+            <div class="table-wrapper"
+                 th:if="${!voidedRecords.isEmpty()}">
+
+                <table>
+
+                    <thead>
+                    <tr>
+                        <th>Original Date</th>
+                        <th>Store</th>
+                        <th>Category</th>
+                        <th>Worker or Recipient</th>
+                        <th>Amount</th>
+                        <th>Description</th>
+                        <th>Void Reason</th>
+                        <th>Voided By</th>
+                        <th>Voided Date</th>
+                    </tr>
+                    </thead>
+
+                    <tbody>
+
+                    <tr th:each="record : ${voidedRecords}">
+
+                        <td th:text="${T(
+                            com.royalcurtains.storemanagement.util.AfghanDateUtil
+                        ).format(record.expenseDate)}">
+                            18 Mizan 1405 15:46
+                        </td>
+
+                        <td th:text="${record.store.name}">
+                            Royal Curtains Store
+                        </td>
+
+                        <td th:text="${record.category}">
+                            RENT
+                        </td>
+
+                        <td>
+                            <span th:if="${record.worker != null}"
+                                  th:text="${record.worker.fullName}">
+                                Ahmad Rahimi
+                            </span>
+
+                            <span th:if="${record.worker == null
+                                         and record.recipientName != null}"
+                                  th:text="${record.recipientName}">
+                                Keraya Dokan
+                            </span>
+
+                            <span th:if="${record.worker == null
+                                         and record.recipientName == null}">
+                                Not provided
+                            </span>
+                        </td>
+
+                        <td>
+                            <strong th:text="${record.amount}">
+                                500.00
+                            </strong>
+
+                            <span th:text="${record.currency}">
+                                USD
+                            </span>
+                        </td>
+
+                        <td th:text="${record.description != null
+                                      and !record.description.isBlank()
+                                      ? record.description
+                                      : 'None'}">
+                            June payment
+                        </td>
+
+                        <td th:text="${record.voidReason}">
+                            Entered by mistake
+                        </td>
+
+                        <td th:text="${record.voidedBy.fullName}">
+                            System Manager
+                        </td>
+
+                        <td th:text="${T(
+                            com.royalcurtains.storemanagement.util.AfghanDateUtil
+                        ).format(record.voidedAt)}">
+                            18 Mizan 1405 19:58
+                        </td>
+
+                    </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </details>
     </section>
 
 </main>

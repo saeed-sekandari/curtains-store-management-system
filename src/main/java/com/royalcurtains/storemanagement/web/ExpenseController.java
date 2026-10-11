@@ -97,20 +97,20 @@ public class ExpenseController {
                 reportDate
         );
 
-        List<ExpenseRecord> records;
+        List<ExpenseRecord> activeRecords;
 
         if (selectedStore == null) {
-            records = expenseRecordRepository
+            activeRecords = expenseRecordRepository
                     .findByStatusOrderByExpenseDateDesc("ACTIVE");
         } else {
-            records = expenseRecordRepository
+            activeRecords = expenseRecordRepository
                     .findByStoreIdAndStatusOrderByExpenseDateDesc(
                             selectedStore.getId(),
                             "ACTIVE"
                     );
         }
 
-        List<ExpenseRecord> filteredRecords = records.stream()
+        List<ExpenseRecord> filteredRecords = activeRecords.stream()
                 .filter(record ->
                         isInsidePeriod(
                                 record,
@@ -119,6 +119,19 @@ public class ExpenseController {
                         )
                 )
                 .toList();
+
+        List<ExpenseRecord> voidedRecords;
+
+        if (selectedStore == null) {
+            voidedRecords = expenseRecordRepository
+                    .findByStatusOrderByExpenseDateDesc("VOIDED");
+        } else {
+            voidedRecords = expenseRecordRepository
+                    .findByStoreIdAndStatusOrderByExpenseDateDesc(
+                            selectedStore.getId(),
+                            "VOIDED"
+                    );
+        }
 
         BigDecimal afnTotal = BigDecimal.ZERO;
         BigDecimal usdTotal = BigDecimal.ZERO;
@@ -245,6 +258,11 @@ public class ExpenseController {
         model.addAttribute(
                 "records",
                 filteredRecords
+        );
+
+        model.addAttribute(
+                "voidedRecords",
+                voidedRecords
         );
 
         model.addAttribute(
@@ -386,7 +404,6 @@ public class ExpenseController {
                 + selectedStore.getCode();
     }
 
-    // Voids the record without deleting it permanently.
     @Transactional
     @PostMapping("/expenses/{expenseId}/void")
     public String voidExpense(
