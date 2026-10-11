@@ -1,9 +1,12 @@
 <!DOCTYPE html>
-<html lang="en" dir="ltr" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      dir="ltr"
+      xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>Employee Dashboard</title>
 
@@ -128,14 +131,6 @@
         .button:hover {
             background: #0f2b4d;
         }
-
-        .payment-button {
-            background: #d69b2d;
-        }
-
-        .payment-button:hover {
-            background: #b9801e;
-        }
     </style>
 </head>
 
@@ -146,7 +141,8 @@
     <h1>Employee Dashboard</h1>
 
     <form th:action="@{/logout}"
-          method="post">
+          method="post"
+          style="display: inline;">
 
         <input type="hidden"
                th:name="${_csrf.parameterName}"
@@ -156,7 +152,6 @@
                 type="submit">
             Log out
         </button>
-
     </form>
 
 </header>
@@ -179,9 +174,7 @@
             </strong>.
         </p>
 
-        <p>
-            Your assigned store:
-        </p>
+        <p>Your assigned store:</p>
 
         <p class="store-name"
            th:text="${assignedStoreName}">
@@ -212,9 +205,9 @@
 
             <span class="notification-time"
                   th:text="${#temporals.format(
-                          notification.createdAt,
-                          'yyyy-MM-dd HH:mm')}">
-                2026-10-10 15:00
+                      notification.createdAt,
+                      'yyyy-MM-dd HH:mm')}">
+                2026-10-08 13:43
             </span>
 
             <form th:action="@{/notifications/{id}/read(
@@ -229,9 +222,7 @@
                         type="submit">
                     Mark as Read
                 </button>
-
             </form>
-
         </div>
 
         <p class="empty"
@@ -261,7 +252,14 @@
                 View Orders
             </a>
 
-            <a class="button payment-button"
+            <a class="button"
+               th:if="${assignedStoreCode != null
+                       and !assignedStoreCode.isBlank()}"
+               th:href="@{/inventory(store=${assignedStoreCode})}">
+                View Inventory
+            </a>
+
+            <a class="button"
                href="/my-payments">
                 My Payments
             </a>
