@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>Manager Dashboard</title>
 
@@ -133,16 +135,17 @@
 
     <h1>Manager Dashboard</h1>
 
-    <form th:action="@{/logout}" method="post">
+    <form th:action="@{/logout}"
+          method="post">
 
         <input type="hidden"
                th:name="${_csrf.parameterName}"
                th:value="${_csrf.token}">
 
-        <button class="logout-button" type="submit">
+        <button class="logout-button"
+                type="submit">
             Log out
         </button>
-
     </form>
 
 </header>
@@ -163,19 +166,22 @@
     <div class="store-links">
 
         <a class="store-link"
-           th:classappend="${selectedStoreCode == 'all'} ? ' selected' : ''"
+           th:classappend="${selectedStoreCode == 'all'}
+                           ? ' selected'"
            href="/dashboard?store=all">
             All Stores
         </a>
 
         <a class="store-link"
-           th:classappend="${selectedStoreCode == 'royal'} ? ' selected' : ''"
+           th:classappend="${selectedStoreCode == 'royal'}
+                           ? ' selected'"
            href="/dashboard?store=royal">
             Royal Curtains Store
         </a>
 
         <a class="store-link"
-           th:classappend="${selectedStoreCode == 'kabul'} ? ' selected' : ''"
+           th:classappend="${selectedStoreCode == 'kabul'}
+                           ? ' selected'"
            href="/dashboard?store=kabul">
             Kabul Dubai Curtains Store
         </a>
@@ -191,7 +197,8 @@
 
     <div class="quick-links">
 
-        <a class="quick-link" href="/users">
+        <a class="quick-link"
+           href="/users">
             Manage User Accounts
         </a>
 
@@ -208,15 +215,8 @@
         </a>
 
         <a class="quick-link"
-           th:if="${selectedStoreCode != 'all'}"
            th:href="@{/expenses(store=${selectedStoreCode})}">
-            Manage Expenses and Payments
-        </a>
-
-        <a class="quick-link"
-           th:if="${selectedStoreCode == 'all'}"
-           href="/expenses?store=all">
-            View All Expenses and Payments
+            Expenses &amp; Reports
         </a>
 
     </div>
