@@ -1,77 +1,87 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Language = "dari" | "english";
 
-type Sale = {
-  time: string;
+type SaleRow = {
+  dateTime: string;
   type: string;
   description: string;
   amount: number;
+  currency: string;
 };
 
-const dariSales: Sale[] = [
-  {
-    time: "09:15",
-    type: "سفارش مشتری",
-    description: "سفارش شماره 1005",
-    amount: 80000,
-  },
-  {
-    time: "11:30",
-    type: "فروش مستقیم",
-    description: "پارچه مخمل",
-    amount: 25000,
-  },
-  {
-    time: "14:10",
-    type: "سفارش مشتری",
-    description: "سفارش شماره 1006",
-    amount: 70000,
-  },
-  {
-    time: "16:45",
-    type: "فروش مستقیم",
-    description: "بالشت",
-    amount: 10000,
-  },
-];
-
-const englishSales: Sale[] = [
-  {
-    time: "09:15",
-    type: "Customer Order",
-    description: "Order #1005",
-    amount: 80000,
-  },
-  {
-    time: "11:30",
-    type: "Direct Sale",
-    description: "Velvet fabric",
-    amount: 25000,
-  },
-  {
-    time: "14:10",
-    type: "Customer Order",
-    description: "Order #1006",
-    amount: 70000,
-  },
-  {
-    time: "16:45",
-    type: "Direct Sale",
-    description: "Pillow",
-    amount: 10000,
-  },
-];
+type DashboardData = {
+  storeName: string;
+  storeCode: string;
+  todayOrderCount: number;
+  customerCount: number;
+  todayOrderSalesAfn: number;
+  todayDirectSalesAfn: number;
+  todaySalesAfn: number;
+  todaySalesUsd: number;
+  todayExpensesAfn: number;
+  todayExpensesUsd: number;
+  monthlySalesAfn: number;
+  sales: SaleRow[];
+};
 
 function App() {
   const [language, setLanguage] = useState<Language>("dari");
+  const [dashboard, setDashboard] =
+    useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const isDari = language === "dari";
-  const sales = isDari ? dariSales : englishSales;
-  const currency = isDari ? "افغاني" : "AFN";
+  const currency = isDari ? "افغانی" : "AFN";
 
-  const formatMoney = (amount: number) =>
-    `${amount.toLocaleString("en-US")} ${currency}`;
+  useEffect(() => {
+    fetch("/api/dashboard?store=all", {
+      credentials: "include",
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Could not load dashboard data");
+        }
+
+        return response.json();
+      })
+      .then((data: DashboardData) => {
+        setDashboard(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(
+          isDari
+            ? "اطلاعات داشبورد بارگذاری نشد."
+            : "Could not load dashboard data."
+        );
+        setLoading(false);
+      });
+  }, [isDari]);
+
+  const formatMoney = (
+    amount: number | undefined,
+    selectedCurrency = currency
+  ) => {
+    return `${(amount ?? 0).toLocaleString("en-US")} ${selectedCurrency}`;
+  };
+
+  const getSaleType = (type: string) => {
+    if (type === "CUSTOMER_ORDER") {
+      return isDari ? "سفارش مشتری" : "Customer Order";
+    }
+
+    return isDari ? "فروش مستقیم" : "Direct Sale";
+  };
+
+  const getSaleTime = (dateTime: string) => {
+    if (dateTime.includes("T")) {
+      return dateTime.substring(11, 16);
+    }
+
+    return dateTime.substring(0, 5);
+  };
 
   const text = {
     title: isDari ? "پرده سرای بزرگ رویال" : "Royal Curtains Store",
@@ -96,15 +106,59 @@ function App() {
     monthlySales: isDari ? "فروش ماه" : "Monthly Sales",
 
     todaysSales: isDari ? "فروش‌های امروز" : "Today's Sales",
+    noSales: isDari
+      ? "امروز هنوز فروشی ثبت نشده است."
+      : "No sales have been recorded today.",
+
     time: isDari ? "زمان" : "Time",
     saleType: isDari ? "نوع فروش" : "Sale Type",
     description: isDari ? "توضیحات" : "Description",
     amount: isDari ? "مبلغ" : "Amount",
 
+    recordedToday: isDari
+      ? "ثبت‌شده امروز"
+      : "Recorded today",
+
+    ordersAndDirectSales: isDari
+      ? "شامل سفارش و فروش مستقیم"
+      : "Orders and direct sales",
+
+    expensesRecordedToday: isDari
+      ? "مصارف ثبت‌شده امروز"
+      : "Recorded today",
+
+    fromStartOfMonth: isDari
+      ? "از اول ماه تا امروز"
+      : "From the start of the month",
+
+    today: isDari ? "امروز" : "Today",
+
     royalStore: isDari
       ? "فروشگاه پرده سرای رویال"
       : "Royal Curtains Store",
   };
+
+  if (loading) {
+    return (
+      <div
+        dir={isDari ? "rtl" : "ltr"}
+        className="flex min-h-screen items-center justify-center bg-[#fbf8f1] text-xl text-[#173f38]"
+      >
+        {isDari ? "در حال بارگذاری..." : "Loading..."}
+      </div>
+    );
+  }
+
+  if (error || !dashboard) {
+    return (
+      <div
+        dir={isDari ? "rtl" : "ltr"}
+        className="flex min-h-screen items-center justify-center bg-[#fbf8f1] px-6 text-center text-xl text-red-700"
+      >
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -185,46 +239,30 @@ function App() {
             <div className="mb-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <MetricCard
                 label={text.todayOrders}
-                value="6"
-                detail={
-                  isDari
-                    ? "ثبت‌شده امروز"
-                    : "Recorded today"
-                }
+                value={dashboard.todayOrderCount.toString()}
+                detail={text.recordedToday}
                 icon="▤"
               />
 
               <MetricCard
                 label={text.todaySales}
-                value={formatMoney(185000)}
-                detail={
-                  isDari
-                    ? "شامل سفارش و فروش مستقیم"
-                    : "Orders and direct sales"
-                }
+                value={formatMoney(dashboard.todaySalesAfn)}
+                detail={text.ordersAndDirectSales}
                 icon="↗"
                 highlighted
               />
 
               <MetricCard
                 label={text.todayExpenses}
-                value={formatMoney(12000)}
-                detail={
-                  isDari
-                    ? "مصارف ثبت‌شده امروز"
-                    : "Recorded today"
-                }
+                value={formatMoney(dashboard.todayExpensesAfn)}
+                detail={text.expensesRecordedToday}
                 icon="−"
               />
 
               <MetricCard
                 label={text.monthlySales}
-                value={formatMoney(9280000)}
-                detail={
-                  isDari
-                    ? "از اول ماه تا امروز"
-                    : "From the start of the month"
-                }
+                value={formatMoney(dashboard.monthlySalesAfn)}
+                detail={text.fromStartOfMonth}
                 icon="▥"
               />
             </div>
@@ -244,60 +282,71 @@ function App() {
                 </div>
 
                 <div className="rounded-full bg-[#f7f1e7] px-4 py-2 text-sm text-[#987348]">
-                  {isDari ? "امروز" : "Today"}
+                  {text.today}
                 </div>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[650px] border-collapse text-right">
-                  <thead>
-                    <tr className="border-b border-[#eee6db] text-sm text-[#8b8175]">
-                      <th className="px-4 py-4 font-medium">
-                        {text.time}
-                      </th>
+              {dashboard.sales.length === 0 ? (
+                <p className="rounded-2xl bg-[#fbf8f1] p-6 text-center text-[#8b8175]">
+                  {text.noSales}
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[650px] border-collapse text-right">
+                    <thead>
+                      <tr className="border-b border-[#eee6db] text-sm text-[#8b8175]">
+                        <th className="px-4 py-4 font-medium">
+                          {text.time}
+                        </th>
 
-                      <th className="px-4 py-4 font-medium">
-                        {text.saleType}
-                      </th>
+                        <th className="px-4 py-4 font-medium">
+                          {text.saleType}
+                        </th>
 
-                      <th className="px-4 py-4 font-medium">
-                        {text.description}
-                      </th>
+                        <th className="px-4 py-4 font-medium">
+                          {text.description}
+                        </th>
 
-                      <th className="px-4 py-4 font-medium">
-                        {text.amount}
-                      </th>
-                    </tr>
-                  </thead>
-
-                  <tbody>
-                    {sales.map((sale) => (
-                      <tr
-                        key={`${sale.time}-${sale.description}`}
-                        className="border-b border-[#f2ece3] last:border-0"
-                      >
-                        <td className="px-4 py-5 text-sm text-[#766c60]">
-                          {sale.time}
-                        </td>
-
-                        <td className="px-4 py-5">
-                          <span className="rounded-full bg-[#eef6f1] px-3 py-1.5 text-sm text-[#267052]">
-                            {sale.type}
-                          </span>
-                        </td>
-
-                        <td className="px-4 py-5 text-sm text-[#4f5f59]">
-                          {sale.description}
-                        </td>
-
-                        <td className="px-4 py-5 font-semibold text-[#173f38]">
-                          {formatMoney(sale.amount)}
-                        </td>
+                        <th className="px-4 py-4 font-medium">
+                          {text.amount}
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+
+                    <tbody>
+                      {dashboard.sales.map((sale) => (
+                        <tr
+                          key={`${sale.dateTime}-${sale.description}`}
+                          className="border-b border-[#f2ece3] last:border-0"
+                        >
+                          <td className="px-4 py-5 text-sm text-[#766c60]">
+                            {getSaleTime(sale.dateTime)}
+                          </td>
+
+                          <td className="px-4 py-5">
+                            <span className="rounded-full bg-[#eef6f1] px-3 py-1.5 text-sm text-[#267052]">
+                              {getSaleType(sale.type)}
+                            </span>
+                          </td>
+
+                          <td className="px-4 py-5 text-sm text-[#4f5f59]">
+                            {sale.description}
+                          </td>
+
+                          <td className="px-4 py-5 font-semibold text-[#173f38]">
+                            {formatMoney(
+                              sale.amount,
+                              isDari
+                                ? "افغانی"
+                                : sale.currency
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </section>
           </section>
         </main>
