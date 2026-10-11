@@ -14,16 +14,18 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.security.Principal;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -47,18 +49,28 @@ public class ExpenseController {
         this.storeAccessService = storeAccessService;
     }
 
-    // Shows daily, weekly, monthly, or yearly financial reports.
     @GetMapping("/expenses")
     public String expenses(
-            @RequestParam(defaultValue = "all") String store,
-            @RequestParam(defaultValue = "monthly") String period,
+            @RequestParam String store,
+            @RequestParam(required = false, defaultValue = "monthly")
+            String period,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month,
             @RequestParam(required = false) Integer day,
             Model model,
             Principal principal) {
 
-        User manager = getManager(principal);
+        User currentUser = findUser(principal);
+        requireManager(currentUser);
+
+        Store selectedStore = findSelectedStore(store);
+
+        if (selectedStore != null) {
+            storeAccessService.checkStoreAccess(
+                    principal,
+                    selectedStore.getCode()
+            );
+        }
 
         LocalDate today = LocalDate.now();
 
@@ -74,123 +86,155 @@ public class ExpenseController {
                 ? day
                 : AfghanDateUtil.getDay(today);
 
-        validatePeriod(period);
-        validateAfghanDate(
+        LocalDate reportDate = AfghanDateUtil.toGregorianDate(
                 selectedYear,
                 selectedMonth,
                 selectedDay
         );
 
-        List<ExpenseRecord> allRecords;
-        Store selectedStore = null;
+        ReportPeriod reportPeriod = calculatePeriod(
+                period,
+                reportDate
+        );
 
-        if ("all".equalsIgnoreCase(store)) {
-            allRecords = expenseRecordRepository
-                    .findAllByOrderByExpenseDateDesc();
+        List<ExpenseRecord> records;
+
+        if (selectedStore == null) {
+            records = expenseRecordRepository
+                    .findByStatusOrderByExpenseDateDesc("ACTIVE");
         } else {
-            selectedStore = findStore(store);
-
-            storeAccessService.checkStoreAccess(
-                    principal,
-                    selectedStore.getCode()
-            );
-
-            allRecords = expenseRecordRepository
-                    .findByStoreIdOrderByExpenseDateDesc(
-                            selectedStore.getId()
+            records = expenseRecordRepository
+                    .findByStoreIdAndStatusOrderByExpenseDateDesc(
+                            selectedStore.getId(),
+                            "ACTIVE"
                     );
         }
 
-        List<ExpenseRecord> filteredRecords =
-                filterRecords(
-                        allRecords,
-                        period,
-                        selectedYear,
-                        selectedMonth,
-                        selectedDay
-                );
+        List<ExpenseRecord> filteredRecords = records.stream()
+                .filter(record ->
+                        isInsidePeriod(
+                                record,
+                                reportPeriod.start(),
+                                reportPeriod.end()
+                        )
+                )
+                .toList();
 
-        BigDecimal afnTotal =
-                totalForCurrency(filteredRecords, "AFN");
-
-        BigDecimal usdTotal =
-                totalForCurrency(filteredRecords, "USD");
+        BigDecimal afnTotal = BigDecimal.ZERO;
+        BigDecimal usdTotal = BigDecimal.ZERO;
 
         Map<String, BigDecimal> afnTotalsByCategory =
-                totalsByCategory(filteredRecords, "AFN");
+                new HashMap<>();
 
         Map<String, BigDecimal> usdTotalsByCategory =
-                totalsByCategory(filteredRecords, "USD");
+                new HashMap<>();
 
-        LocalDate referenceDate =
-                AfghanDateUtil.toGregorianDate(
-                        selectedYear,
-                        selectedMonth,
-                        selectedDay
+        for (ExpenseRecord record : filteredRecords) {
+            BigDecimal amount = record.getAmount() == null
+                    ? BigDecimal.ZERO
+                    : record.getAmount();
+
+            if ("USD".equalsIgnoreCase(record.getCurrency())) {
+                usdTotal = usdTotal.add(amount);
+
+                usdTotalsByCategory.merge(
+                        record.getCategory(),
+                        amount,
+                        BigDecimal::add
                 );
+            } else {
+                afnTotal = afnTotal.add(amount);
 
-        LocalDate reportStart =
-                reportStart(
-                        period,
-                        selectedYear,
-                        selectedMonth,
-                        selectedDay,
-                        referenceDate
+                afnTotalsByCategory.merge(
+                        record.getCategory(),
+                        amount,
+                        BigDecimal::add
                 );
+            }
+        }
 
-        LocalDate reportEnd =
-                reportEnd(
-                        period,
-                        selectedYear,
-                        selectedMonth,
-                        selectedDay,
-                        referenceDate
-                );
+        List<Integer> availableYears = new ArrayList<>();
+        int currentAfghanYear = AfghanDateUtil.getYear(today);
 
-        model.addAttribute("records", filteredRecords);
-        model.addAttribute("selectedStore", selectedStore);
-        model.addAttribute("selectedStoreCode", store);
-        model.addAttribute("username", manager.getUsername());
+        for (int i = currentAfghanYear - 5;
+             i <= currentAfghanYear;
+             i++) {
 
-        model.addAttribute("period", period);
-        model.addAttribute("periodLabel", periodLabel(period));
+            availableYears.add(i);
+        }
+
+        List<Integer> availableMonths = new ArrayList<>();
+
+        for (int i = 1; i <= 12; i++) {
+            availableMonths.add(i);
+        }
+
+        List<Integer> availableDays = new ArrayList<>();
+
+        for (int i = 1; i <= 31; i++) {
+            availableDays.add(i);
+        }
+
+        model.addAttribute(
+                "selectedStore",
+                selectedStore == null
+                        ? "All Stores"
+                        : selectedStore.getName()
+        );
+
+        model.addAttribute(
+                "selectedStoreCode",
+                selectedStore == null
+                        ? "all"
+                        : selectedStore.getCode()
+        );
+
+        model.addAttribute(
+                "period",
+                period.toLowerCase()
+        );
+
+        model.addAttribute(
+                "periodLabel",
+                reportPeriod.label()
+        );
+
+        model.addAttribute(
+                "reportStart",
+                AfghanDateUtil.formatDate(
+                        reportPeriod.start()
+                )
+        );
+
+        model.addAttribute(
+                "reportEnd",
+                AfghanDateUtil.formatDate(
+                        reportPeriod.end()
+                )
+        );
 
         model.addAttribute("selectedYear", selectedYear);
         model.addAttribute("selectedMonth", selectedMonth);
         model.addAttribute("selectedDay", selectedDay);
+
         model.addAttribute(
                 "selectedMonthName",
                 AfghanDateUtil.getMonthName(selectedMonth)
         );
 
         model.addAttribute(
-                "reportStart",
-                AfghanDateUtil.formatDate(reportStart)
-        );
-
-        model.addAttribute(
-                "reportEnd",
-                AfghanDateUtil.formatDate(reportEnd)
-        );
-
-        model.addAttribute(
                 "availableYears",
-                buildAvailableYears(
-                        AfghanDateUtil.getYear(today)
-                )
+                availableYears
         );
 
         model.addAttribute(
                 "availableMonths",
-                buildNumbers(1, 12)
+                availableMonths
         );
 
         model.addAttribute(
                 "availableDays",
-                buildNumbers(
-                        1,
-                        maximumDayForMonth(selectedMonth)
-                )
+                availableDays
         );
 
         model.addAttribute(
@@ -198,12 +242,26 @@ public class ExpenseController {
                 AfghanDateUtil.getMonthNames()
         );
 
-        model.addAttribute("afnTotal", afnTotal);
-        model.addAttribute("usdTotal", usdTotal);
+        model.addAttribute(
+                "records",
+                filteredRecords
+        );
+
+        model.addAttribute(
+                "afnTotal",
+                afnTotal
+        );
+
+        model.addAttribute(
+                "usdTotal",
+                usdTotal
+        );
+
         model.addAttribute(
                 "afnTotalsByCategory",
                 afnTotalsByCategory
         );
+
         model.addAttribute(
                 "usdTotalsByCategory",
                 usdTotalsByCategory
@@ -212,14 +270,14 @@ public class ExpenseController {
         return "expenses";
     }
 
-    // Opens the form for recording a financial record.
     @GetMapping("/expenses/new")
     public String newExpense(
             @RequestParam String store,
             Model model,
             Principal principal) {
 
-        getManager(principal);
+        User currentUser = findUser(principal);
+        requireManager(currentUser);
 
         Store selectedStore = findStore(store);
 
@@ -231,12 +289,15 @@ public class ExpenseController {
         List<User> workers = userRepository.findAll()
                 .stream()
                 .filter(user ->
-                        user.getAssignedStore() != null
-                                && user.getAssignedStore().getId()
-                                .equals(selectedStore.getId())
-                                && (
-                                user.getRole() == Role.EMPLOYEE
-                                        || user.getRole() == Role.TAILOR
+                        user.getRole() == Role.EMPLOYEE
+                                || user.getRole() == Role.TAILOR
+                )
+                .sorted(
+                        Comparator.comparing(
+                                User::getFullName,
+                                Comparator.nullsLast(
+                                        String.CASE_INSENSITIVE_ORDER
+                                )
                         )
                 )
                 .toList();
@@ -248,22 +309,21 @@ public class ExpenseController {
         return "expense-form";
     }
 
-    // Saves a store expense, employee payment,
-    // tailor payment, or manager withdrawal.
     @Transactional
     @PostMapping("/expenses")
     public String saveExpense(
             @RequestParam String storeCode,
             @RequestParam String category,
-            @RequestParam BigDecimal amount,
-            @RequestParam String currency,
-            @RequestParam LocalDateTime expenseDate,
             @RequestParam(required = false) Long workerId,
             @RequestParam(required = false) String recipientName,
+            @RequestParam BigDecimal amount,
+            @RequestParam String currency,
+            @RequestParam String expenseDate,
             @RequestParam(required = false) String description,
             Principal principal) {
 
-        User manager = getManager(principal);
+        User recordedBy = findUser(principal);
+        requireManager(recordedBy);
 
         Store selectedStore = findStore(storeCode);
 
@@ -272,361 +332,6 @@ public class ExpenseController {
                 selectedStore.getCode()
         );
 
-        validateAmount(amount);
-        validateCurrency(currency);
-        validateCategory(category);
-
-        User worker = null;
-
-        if (workerId != null) {
-            worker = userRepository.findById(workerId)
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "Worker not found"
-                            )
-                    );
-
-            if (worker.getAssignedStore() == null
-                    || !worker.getAssignedStore().getId()
-                    .equals(selectedStore.getId())) {
-
-                throw new IllegalArgumentException(
-                        "The worker must belong to the selected store"
-                );
-            }
-
-            if (worker.getRole() != Role.EMPLOYEE
-                    && worker.getRole() != Role.TAILOR) {
-
-                throw new IllegalArgumentException(
-                        "Only employees and tailors can receive payments"
-                );
-            }
-        }
-
-        ExpenseRecord record = new ExpenseRecord();
-
-        record.setStore(selectedStore);
-        record.setCategory(category);
-        record.setWorker(worker);
-        record.setAmount(amount);
-        record.setCurrency(currency.toUpperCase());
-        record.setExpenseDate(expenseDate);
-        record.setRecipientName(recipientName);
-        record.setDescription(description);
-        record.setRecordedBy(manager);
-
-        expenseRecordRepository.save(record);
-
-        int afghanYear =
-                AfghanDateUtil.getYear(expenseDate.toLocalDate());
-
-        int afghanMonth =
-                AfghanDateUtil.getMonth(expenseDate.toLocalDate());
-
-        int afghanDay =
-                AfghanDateUtil.getDay(expenseDate.toLocalDate());
-
-        return "redirect:/expenses?store="
-                + selectedStore.getCode()
-                + "&period=monthly"
-                + "&year="
-                + afghanYear
-                + "&month="
-                + afghanMonth
-                + "&day="
-                + afghanDay;
-    }
-
-    private List<ExpenseRecord> filterRecords(
-            List<ExpenseRecord> records,
-            String period,
-            int year,
-            int month,
-            int day) {
-
-        LocalDate referenceDate =
-                AfghanDateUtil.toGregorianDate(
-                        year,
-                        month,
-                        day
-                );
-
-        LocalDate start =
-                reportStart(
-                        period,
-                        year,
-                        month,
-                        day,
-                        referenceDate
-                );
-
-        LocalDate end =
-                reportEnd(
-                        period,
-                        year,
-                        month,
-                        day,
-                        referenceDate
-                );
-
-        return records.stream()
-                .filter(record -> {
-                    if (record.getExpenseDate() == null) {
-                        return false;
-                    }
-
-                    LocalDate recordDate =
-                            record.getExpenseDate().toLocalDate();
-
-                    return !recordDate.isBefore(start)
-                            && !recordDate.isAfter(end);
-                })
-                .toList();
-    }
-
-    private LocalDate reportStart(
-            String period,
-            int year,
-            int month,
-            int day,
-            LocalDate referenceDate) {
-
-        return switch (period.toLowerCase()) {
-            case "daily" -> referenceDate;
-
-            case "weekly" -> {
-                int daysFromSaturday =
-                        (referenceDate.getDayOfWeek().getValue() - 6 + 7)
-                                % 7;
-
-                yield referenceDate.minusDays(daysFromSaturday);
-            }
-
-            case "monthly" ->
-                    AfghanDateUtil.toGregorianDate(
-                            year,
-                            month,
-                            1
-                    );
-
-            case "yearly" ->
-                    AfghanDateUtil.toGregorianDate(
-                            year,
-                            1,
-                            1
-                    );
-
-            default -> throw new IllegalArgumentException(
-                    "Invalid report period"
-            );
-        };
-    }
-
-    private LocalDate reportEnd(
-            String period,
-            int year,
-            int month,
-            int day,
-            LocalDate referenceDate) {
-
-        return switch (period.toLowerCase()) {
-            case "daily" -> referenceDate;
-
-            case "weekly" ->
-                    reportStart(
-                            period,
-                            year,
-                            month,
-                            day,
-                            referenceDate
-                    ).plusDays(6);
-
-            case "monthly" -> {
-                if (month == 12) {
-                    yield AfghanDateUtil.toGregorianDate(
-                            year + 1,
-                            1,
-                            1
-                    ).minusDays(1);
-                }
-
-                yield AfghanDateUtil.toGregorianDate(
-                        year,
-                        month + 1,
-                        1
-                ).minusDays(1);
-            }
-
-            case "yearly" ->
-                    AfghanDateUtil.toGregorianDate(
-                            year + 1,
-                            1,
-                            1
-                    ).minusDays(1);
-
-            default -> throw new IllegalArgumentException(
-                    "Invalid report period"
-            );
-        };
-    }
-
-    private String periodLabel(String period) {
-        return switch (period.toLowerCase()) {
-            case "daily" -> "Daily Report";
-            case "weekly" -> "Weekly Report";
-            case "monthly" -> "Monthly Report";
-            case "yearly" -> "Yearly Report";
-            default -> "Expense Report";
-        };
-    }
-
-    private int maximumDayForMonth(int month) {
-        if (month <= 6) {
-            return 31;
-        }
-
-        if (month <= 11) {
-            return 30;
-        }
-
-        return 30;
-    }
-
-    private List<Integer> buildNumbers(
-            int start,
-            int end) {
-
-        List<Integer> numbers = new ArrayList<>();
-
-        for (int number = start; number <= end; number++) {
-            numbers.add(number);
-        }
-
-        return numbers;
-    }
-
-    private List<Integer> buildAvailableYears(
-            int currentAfghanYear) {
-
-        List<Integer> years = new ArrayList<>();
-
-        for (int year = currentAfghanYear;
-             year >= currentAfghanYear - 5;
-             year--) {
-
-            years.add(year);
-        }
-
-        return years;
-    }
-
-    private BigDecimal totalForCurrency(
-            List<ExpenseRecord> records,
-            String currency) {
-
-        return records.stream()
-                .filter(record ->
-                        currency.equalsIgnoreCase(
-                                record.getCurrency()
-                        )
-                )
-                .map(ExpenseRecord::getAmount)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-    }
-
-    private Map<String, BigDecimal> totalsByCategory(
-            List<ExpenseRecord> records,
-            String currency) {
-
-        Map<String, BigDecimal> totals =
-                new LinkedHashMap<>();
-
-        records.stream()
-                .filter(record ->
-                        currency.equalsIgnoreCase(
-                                record.getCurrency()
-                        )
-                )
-                .forEach(record ->
-                        totals.merge(
-                                record.getCategory(),
-                                record.getAmount(),
-                                BigDecimal::add
-                        )
-                );
-
-        return totals;
-    }
-
-    private User getManager(Principal principal) {
-        User user = userRepository.findByUsername(principal.getName())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("User not found")
-                );
-
-        if (user.getRole() != Role.MANAGER) {
-            throw new AccessDeniedException(
-                    "Only the manager can access financial expenses"
-            );
-        }
-
-        return user;
-    }
-
-    private Store findStore(String storeCode) {
-        return storeRepository.findByCode(storeCode.toLowerCase())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("Store not found")
-                );
-    }
-
-    private void validatePeriod(String period) {
-        List<String> allowedPeriods = List.of(
-                "daily",
-                "weekly",
-                "monthly",
-                "yearly"
-        );
-
-        if (!allowedPeriods.contains(period.toLowerCase())) {
-            throw new IllegalArgumentException(
-                    "Invalid report period"
-            );
-        }
-    }
-
-    private void validateAfghanDate(
-            int year,
-            int month,
-            int day) {
-
-        if (year < 1) {
-            throw new IllegalArgumentException(
-                    "Invalid Afghan year"
-            );
-        }
-
-        if (month < 1 || month > 12) {
-            throw new IllegalArgumentException(
-                    "Afghan month must be between 1 and 12"
-            );
-        }
-
-        if (day < 1 || day > maximumDayForMonth(month)) {
-            throw new IllegalArgumentException(
-                    "Invalid Afghan day"
-            );
-        }
-
-        AfghanDateUtil.toGregorianDate(
-                year,
-                month,
-                day
-        );
-    }
-
-    private void validateAmount(BigDecimal amount) {
         if (amount == null
                 || amount.compareTo(BigDecimal.ZERO) <= 0) {
 
@@ -634,34 +339,260 @@ public class ExpenseController {
                     "Amount must be greater than zero"
             );
         }
-    }
 
-    private void validateCurrency(String currency) {
-        if (!"AFN".equalsIgnoreCase(currency)
-                && !"USD".equalsIgnoreCase(currency)) {
+        ExpenseRecord record = new ExpenseRecord();
 
-            throw new IllegalArgumentException(
-                    "Currency must be AFN or USD"
+        record.setStore(selectedStore);
+        record.setCategory(category);
+        record.setAmount(amount);
+        record.setCurrency(currency.toUpperCase());
+        record.setExpenseDate(
+                LocalDateTime.parse(expenseDate)
+        );
+        record.setDescription(description);
+        record.setRecordedBy(recordedBy);
+        record.setStatus("ACTIVE");
+
+        if (recipientName != null
+                && !recipientName.isBlank()) {
+
+            record.setRecipientName(
+                    recipientName.trim()
             );
         }
+
+        if (workerId != null) {
+            User worker = userRepository.findById(workerId)
+                    .orElseThrow(() ->
+                            new IllegalArgumentException(
+                                    "Selected worker was not found"
+                            )
+                    );
+
+            record.setWorker(worker);
+
+            if (record.getRecipientName() == null
+                    || record.getRecipientName().isBlank()) {
+
+                record.setRecipientName(
+                        worker.getFullName()
+                );
+            }
+        }
+
+        expenseRecordRepository.save(record);
+
+        return "redirect:/expenses?store="
+                + selectedStore.getCode();
     }
 
-    private void validateCategory(String category) {
-        List<String> allowedCategories = List.of(
-                "RENT",
-                "ELECTRICITY",
-                "TAX",
-                "TRANSPORTATION",
-                "EMPLOYEE_PAYMENT",
-                "TAILOR_PAYMENT",
-                "MANAGER_WITHDRAWAL",
-                "OTHER"
+    // Voids the record without deleting it permanently.
+    @Transactional
+    @PostMapping("/expenses/{expenseId}/void")
+    public String voidExpense(
+            @PathVariable Long expenseId,
+            @RequestParam String voidReason,
+            Principal principal,
+            RedirectAttributes redirectAttributes) {
+
+        User currentUser = findUser(principal);
+        requireManager(currentUser);
+
+        ExpenseRecord record = expenseRecordRepository
+                .findById(expenseId)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Expense record not found"
+                        )
+                );
+
+        Store recordStore = record.getStore();
+
+        storeAccessService.checkStoreAccess(
+                principal,
+                recordStore.getCode()
         );
 
-        if (!allowedCategories.contains(category)) {
-            throw new IllegalArgumentException(
-                    "Invalid expense category"
+        if ("VOIDED".equals(record.getStatus())) {
+            redirectAttributes.addFlashAttribute(
+                    "error",
+                    "This record has already been voided."
+            );
+
+            return "redirect:/expenses?store="
+                    + recordStore.getCode();
+        }
+
+        if (voidReason == null
+                || voidReason.isBlank()) {
+
+            redirectAttributes.addFlashAttribute(
+                    "error",
+                    "Please enter a reason before voiding the record."
+            );
+
+            return "redirect:/expenses?store="
+                    + recordStore.getCode();
+        }
+
+        record.setStatus("VOIDED");
+        record.setVoidedAt(LocalDateTime.now());
+        record.setVoidedBy(currentUser);
+        record.setVoidReason(voidReason.trim());
+
+        expenseRecordRepository.save(record);
+
+        redirectAttributes.addFlashAttribute(
+                "success",
+                "The expense record was voided successfully."
+        );
+
+        return "redirect:/expenses?store="
+                + recordStore.getCode();
+    }
+
+    private Store findSelectedStore(String storeCode) {
+        if ("all".equalsIgnoreCase(storeCode)) {
+            return null;
+        }
+
+        return findStore(storeCode);
+    }
+
+    private Store findStore(String storeCode) {
+        return storeRepository
+                .findByCode(storeCode.toLowerCase())
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Store not found"
+                        )
+                );
+    }
+
+    private User findUser(Principal principal) {
+        return userRepository
+                .findByUsername(principal.getName())
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "User not found"
+                        )
+                );
+    }
+
+    private void requireManager(User user) {
+        if (user.getRole() != Role.MANAGER) {
+            throw new AccessDeniedException(
+                    "Only the manager can manage expense records"
             );
         }
+    }
+
+    private boolean isInsidePeriod(
+            ExpenseRecord record,
+            LocalDate start,
+            LocalDate end) {
+
+        if (record.getExpenseDate() == null) {
+            return false;
+        }
+
+        LocalDate recordDate =
+                record.getExpenseDate().toLocalDate();
+
+        return !recordDate.isBefore(start)
+                && !recordDate.isAfter(end);
+    }
+
+    private ReportPeriod calculatePeriod(
+            String period,
+            LocalDate date) {
+
+        String selectedPeriod = period == null
+                ? "monthly"
+                : period.toLowerCase();
+
+        LocalDate start;
+        LocalDate end;
+        String label;
+
+        switch (selectedPeriod) {
+
+            case "daily" -> {
+                start = date;
+                end = date;
+                label = "Daily Report";
+            }
+
+            case "weekly" -> {
+                int daysFromSaturday =
+                        (date.getDayOfWeek().getValue() + 1) % 7;
+
+                start = date.minusDays(daysFromSaturday);
+                end = start.plusDays(6);
+                label = "Weekly Report";
+            }
+
+            case "yearly" -> {
+                int afghanYear =
+                        AfghanDateUtil.getYear(date);
+
+                start = AfghanDateUtil.toGregorianDate(
+                        afghanYear,
+                        1,
+                        1
+                );
+
+                end = AfghanDateUtil.toGregorianDate(
+                        afghanYear + 1,
+                        1,
+                        1
+                ).minusDays(1);
+
+                label = "Yearly Report";
+            }
+
+            default -> {
+                int afghanYear =
+                        AfghanDateUtil.getYear(date);
+
+                int afghanMonth =
+                        AfghanDateUtil.getMonth(date);
+
+                start = AfghanDateUtil.toGregorianDate(
+                        afghanYear,
+                        afghanMonth,
+                        1
+                );
+
+                if (afghanMonth == 12) {
+                    end = AfghanDateUtil.toGregorianDate(
+                            afghanYear + 1,
+                            1,
+                            1
+                    ).minusDays(1);
+                } else {
+                    end = AfghanDateUtil.toGregorianDate(
+                            afghanYear,
+                            afghanMonth + 1,
+                            1
+                    ).minusDays(1);
+                }
+
+                label = "Monthly Report";
+            }
+        }
+
+        return new ReportPeriod(
+                start,
+                end,
+                label
+        );
+    }
+
+    private record ReportPeriod(
+            LocalDate start,
+            LocalDate end,
+            String label
+    ) {
     }
 }

@@ -13,43 +13,32 @@ public class ExpenseRecord {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // The store that paid this expense.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "store_id", nullable = false)
     private Store store;
 
-    // Examples:
-    // RENT, ELECTRICITY, TAX, EMPLOYEE_PAYMENT,
-    // TAILOR_PAYMENT, MANAGER_WITHDRAWAL, OTHER
     @Column(nullable = false, length = 40)
     private String category;
 
-    // Used for employee and tailor payments.
-    // This stays empty for rent, electricity, and other store expenses.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "worker_id")
     private User worker;
 
-    // Used for manager withdrawals or payments to someone
-    // who does not have a system account.
     @Column(length = 150)
     private String recipientName;
 
-    @Column(nullable = false, precision = 14, scale = 2)
+    @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal amount;
 
-    // AFN and USD are stored separately.
     @Column(nullable = false, length = 3)
     private String currency;
 
-    // The actual date and time when the money was paid.
     @Column(nullable = false)
     private LocalDateTime expenseDate;
 
     @Column(length = 1000)
     private String description;
 
-    // The user who entered this record.
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "recorded_by_id", nullable = false)
     private User recordedBy;
@@ -57,11 +46,26 @@ public class ExpenseRecord {
     @Column(nullable = false)
     private LocalDateTime createdAt;
 
+    // ACTIVE records are included in reports.
+    // VOIDED records remain visible for history but are excluded from totals.
+    @Column(nullable = false, length = 20)
+    private String status;
+
+    private LocalDateTime voidedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "voided_by_id")
+    private User voidedBy;
+
+    @Column(length = 500)
+    private String voidReason;
+
     public ExpenseRecord() {
         this.amount = BigDecimal.ZERO;
         this.currency = "AFN";
         this.expenseDate = LocalDateTime.now();
         this.createdAt = LocalDateTime.now();
+        this.status = "ACTIVE";
     }
 
     public Long getId() {
@@ -144,7 +148,35 @@ public class ExpenseRecord {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getVoidedAt() {
+        return voidedAt;
+    }
+
+    public void setVoidedAt(LocalDateTime voidedAt) {
+        this.voidedAt = voidedAt;
+    }
+
+    public User getVoidedBy() {
+        return voidedBy;
+    }
+
+    public void setVoidedBy(User voidedBy) {
+        this.voidedBy = voidedBy;
+    }
+
+    public String getVoidReason() {
+        return voidReason;
+    }
+
+    public void setVoidReason(String voidReason) {
+        this.voidReason = voidReason;
     }
 }

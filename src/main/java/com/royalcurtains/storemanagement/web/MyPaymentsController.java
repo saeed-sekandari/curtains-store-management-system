@@ -28,7 +28,6 @@ public class MyPaymentsController {
         this.userRepository = userRepository;
     }
 
-    // Shows only the logged-in employee's or tailor's payments.
     @GetMapping("/my-payments")
     public String myPayments(
             Model model,
@@ -37,7 +36,9 @@ public class MyPaymentsController {
         User currentUser = userRepository
                 .findByUsername(principal.getName())
                 .orElseThrow(() ->
-                        new IllegalArgumentException("User not found")
+                        new IllegalArgumentException(
+                                "User not found"
+                        )
                 );
 
         if (currentUser.getRole() != Role.EMPLOYEE
@@ -50,32 +51,34 @@ public class MyPaymentsController {
 
         List<ExpenseRecord> payments =
                 expenseRecordRepository
-                        .findByWorkerIdOrderByExpenseDateDesc(
-                                currentUser.getId()
+                        .findByWorkerIdAndStatusOrderByExpenseDateDesc(
+                                currentUser.getId(),
+                                "ACTIVE"
                         );
 
-        BigDecimal afnTotal = totalForCurrency(payments, "AFN");
-        BigDecimal usdTotal = totalForCurrency(payments, "USD");
-
-        model.addAttribute("user", currentUser);
-        model.addAttribute("payments", payments);
-        model.addAttribute("afnTotal", afnTotal);
-        model.addAttribute("usdTotal", usdTotal);
-
-        return "my-payments";
-    }
-
-    private BigDecimal totalForCurrency(
-            List<ExpenseRecord> payments,
-            String currency) {
-
-        return payments.stream()
+        BigDecimal totalAfn = payments.stream()
                 .filter(payment ->
-                        currency.equalsIgnoreCase(
+                        "AFN".equalsIgnoreCase(
                                 payment.getCurrency()
                         )
                 )
                 .map(ExpenseRecord::getAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal totalUsd = payments.stream()
+                .filter(payment ->
+                        "USD".equalsIgnoreCase(
+                                payment.getCurrency()
+                        )
+                )
+                .map(ExpenseRecord::getAmount)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        model.addAttribute("user", currentUser);
+        model.addAttribute("payments", payments);
+        model.addAttribute("totalAfn", totalAfn);
+        model.addAttribute("totalUsd", totalUsd);
+
+        return "my-payments";
     }
 }
