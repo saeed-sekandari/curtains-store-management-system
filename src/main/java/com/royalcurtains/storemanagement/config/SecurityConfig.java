@@ -35,6 +35,15 @@ public class SecurityConfig {
         http
                 .userDetailsService(userDetailsService)
 
+                /*
+                 * React sends POST requests to /api/**.
+                 * These requests still require login, but they do not
+                 * contain Thymeleaf's hidden CSRF form token.
+                 */
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/api/**")
+                )
+
                 .authorizeHttpRequests(auth -> auth
 
                         .requestMatchers(
@@ -42,8 +51,15 @@ public class SecurityConfig {
                                 "/home",
                                 "/login",
                                 "/access-denied",
-                                "/css/**"
+                                "/error",
+                                "/css/**",
+                                "/js/**",
+                                "/images/**"
                         ).permitAll()
+
+                        // React API requests require a logged-in user.
+                        .requestMatchers("/api/**")
+                        .authenticated()
 
                         .requestMatchers(
                                 "/dashboard",
@@ -64,7 +80,7 @@ public class SecurityConfig {
                                 "ACCOUNTANT"
                         )
 
-                        // All supplier and supplier payment features are manager-only.
+                        // Supplier features are manager-only.
                         .requestMatchers(
                                 "/suppliers/**",
                                 "/supplier-purchases/**",
@@ -108,7 +124,10 @@ public class SecurityConfig {
                 )
 
                 .logout(logout -> logout
+                        .logoutUrl("/logout")
                         .logoutSuccessUrl("/")
+                        .invalidateHttpSession(true)
+                        .deleteCookies("JSESSIONID")
                         .permitAll()
                 )
 
