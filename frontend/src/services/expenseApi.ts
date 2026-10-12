@@ -1,46 +1,31 @@
-import type {
-  ExpenseFormData,
-} from "../types/expense";
+import type { ExpenseFormData } from "../types/expense";
 
-async function request<T>(
-  url: string,
-  options?: RequestInit
-): Promise<T> {
-  const response = await fetch(url, {
-    credentials: "include",
-    ...options,
-  });
+const API_BASE_URL = "http://localhost:8080/api";
 
-  if (!response.ok) {
-    throw new Error("Expense request failed");
-  }
-
-  const contentType =
-    response.headers.get("content-type");
-
-  if (contentType?.includes("application/json")) {
-    return response.json();
-  }
-
-  return undefined as T;
-}
-
-export function createExpense(
+export async function createExpense(
   data: ExpenseFormData
 ): Promise<void> {
-  return request<void>("/api/expenses", {
+  const response = await fetch(`${API_BASE_URL}/expenses`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
+    credentials: "include",
     body: JSON.stringify({
       storeCode: data.storeCode,
       category: data.category,
       recipientName: data.recipientName,
       amount: data.amount,
       currency: data.currency,
-      expenseDateTime: data.expenseDate,
+      expenseDate: data.expenseDate,
       description: data.description,
     }),
   });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(
+      errorText || `Expense save failed: ${response.status}`
+    );
+  }
 }

@@ -2,33 +2,27 @@ import { useEffect, useState } from "react";
 
 import Sidebar from "../components/Sidebar";
 import ExpenseForm from "../components/ExpenseForm";
-import ExpenseReportFilters, {
-  type ReportPeriod,
-} from "../components/ExpenseReportFilters";
+import ExpenseReportFilters from "../components/ExpenseReportFilters";
 import ExpenseSummaryCards from "../components/ExpenseSummaryCards";
-import ExpenseTable, {
-  type ExpenseReportRecord,
-} from "../components/ExpenseTable";
+import ExpenseTable from "../components/ExpenseTable";
 
 import { createExpense } from "../services/expenseApi";
 
 import type { ExpenseFormData } from "../types/expense";
-
-type Language = "dari" | "english";
+import type { ReportPeriod } from "../components/ExpenseReportFilters";
 
 type ExpensePageProps = {
   storeCode?: string;
   managerName?: string;
 };
 
-type ExpenseReportData = {
-  totalRecords: number;
-  totalAfn: number;
-  totalUsd: number;
-  records: ExpenseReportRecord[];
+type StoreOption = {
+  code: string;
+  dari: string;
+  english: string;
 };
 
-const storeOptions = [
+const stores: StoreOption[] = [
   {
     code: "all",
     dari: "همه فروشگاه‌ها",
@@ -46,73 +40,40 @@ const storeOptions = [
   },
 ];
 
-const formStoreOptions = storeOptions.filter(
-  (store) => store.code !== "all"
-);
-
-const emptyReport: ExpenseReportData = {
-  totalRecords: 0,
-  totalAfn: 0,
-  totalUsd: 0,
-  records: [],
-};
-
-function getToday(): string {
-  return new Date().toISOString().slice(0, 10);
-}
-
-async function loadExpenseReport(
-  storeCode: string,
-  date: string,
-  period: ReportPeriod
-): Promise<ExpenseReportData> {
-  const params = new URLSearchParams();
-
-  params.set("store", storeCode);
-  params.set("date", date);
-  params.set("period", period);
-
-  const response = await fetch(
-    `/api/expenses/report?${params.toString()}`,
-    {
-      method: "GET",
-      headers: {
-        Accept: "application/json",
-      },
-      credentials: "include",
-    }
-  );
-
-  if (!response.ok) {
-    throw new Error("Expense report could not be loaded");
-  }
-
-  return response.json() as Promise<ExpenseReportData>;
-}
-
 export default function ExpensePage({
   storeCode = "royal",
   managerName = "مدیر سیستم",
 }: ExpensePageProps) {
-  const [language, setLanguage] =
-    useState<Language>("dari");
+  const [isDari, setIsDari] = useState(true);
 
-  const [formStoreCode, setFormStoreCode] =
-    useState(
-      storeCode === "all" ? "" : storeCode
-    );
+  const [formStoreCode, setFormStoreCode] = useState(
+    storeCode === "all" ? "" : storeCode
+  );
 
   const [reportStoreCode, setReportStoreCode] =
     useState(storeCode);
 
-  const [reportDate, setReportDate] =
-    useState(getToday());
+  const [reportDate, setReportDate] = useState(
+    new Date().toISOString().slice(0, 10)
+  );
 
   const [reportPeriod, setReportPeriod] =
-    useState<ReportPeriod>("today");
+    useState<ReportPeriod>("month");
 
-  const [report, setReport] =
-    useState<ExpenseReportData>(emptyReport);
+  const [report, setReport] = useState<{
+    totalRecords: number;
+    totalAfn: number;
+    totalUsd: number;
+    records: Array<{
+      id: number;
+      dateTime: string;
+      storeName: string;
+      category: string;
+      recipientName: string;
+      amount: number;
+      currency: string;
+    }>;
+  } | null>(null);
 
   const [reportLoading, setReportLoading] =
     useState(true);
@@ -120,134 +81,65 @@ export default function ExpensePage({
   const [reportError, setReportError] =
     useState("");
 
-  const isDari = language === "dari";
+  const currentStore = stores.find(
+    (store) => store.code === formStoreCode
+  );
 
-  const text = {
-    title: isDari
-      ? "پرده‌سرای بزرگ رویال"
-      : "Royal Curtains Store",
+  const selectedReportStore = stores.find(
+    (store) => store.code === reportStoreCode
+  );
 
-    storeSelector: isDari
-      ? "انتخاب فروشگاه"
-      : "Select Store",
-
-    storeForExpense: isDari
-      ? "فروشگاه مصرف"
-      : "Expense Store",
-
-    chooseStore: isDari
-      ? "لطفاً فروشگاه را انتخاب کنید"
-      : "Please select a store",
-
-    dashboard: isDari
-      ? "داشبورد"
-      : "Dashboard",
-
-    managerWithdrawal: isDari
-      ? "برداشت شخصی مدیر"
-      : "Manager Withdrawal",
-
-    orders: isDari
-      ? "سفارش‌ها"
-      : "Orders",
-
-    customers: isDari
-      ? "مشتریان"
-      : "Customers",
-
-    products: isDari
-      ? "محصولات"
-      : "Products",
-
-    directSales: isDari
-      ? "فروش مستقیم"
-      : "Direct Sales",
-
-    wholesaleAccounts: isDari
-      ? "عمده‌فروشان"
-      : "Wholesale Accounts",
-
-    expenses: isDari
-      ? "مصارف"
-      : "Expenses",
-
-    users: isDari
-      ? "کاربران"
-      : "Users",
-
-    logout: isDari
-      ? "خروج"
-      : "Logout",
-
-    pageTitle: isDari
-      ? "ثبت مصرف یا برداشت"
-      : "Record Expense or Withdrawal",
-
-    reportTitle: isDari
-      ? "گزارش مصارف"
-      : "Expense Report",
-
-    loading: isDari
-      ? "در حال بارگذاری گزارش..."
-      : "Loading report...",
-
-    reportError: isDari
-      ? "اطلاعات گزارش مصارف بارگذاری نشد."
-      : "Expense report could not be loaded.",
-
-    retry: isDari
-      ? "تلاش دوباره"
-      : "Try Again",
-
-    dari: "دری",
-    english: "EN",
-  };
-
-  const handleCancel = () => {
-    window.history.back();
-  };
-
-  const handleSave = async (data: ExpenseFormData) => {
-    if (!formStoreCode) {
-      throw new Error("A store must be selected");
-    }
-
-    await createExpense({
-      ...data,
-      storeCode: formStoreCode,
-    });
-
-    window.location.assign(
-      `/expenses/new?store=${formStoreCode}`
-    );
-  };
-
-  const refreshReport = async () => {
+  const loadReport = async () => {
     try {
       setReportLoading(true);
       setReportError("");
 
-      const data = await loadExpenseReport(
-        reportStoreCode,
-        reportDate,
-        reportPeriod
+      const params = new URLSearchParams({
+        store: reportStoreCode,
+        date: reportDate,
+        period: reportPeriod,
+      });
+
+      const response = await fetch(
+        `http://localhost:8080/api/expenses/report?${params}`,
+        {
+          credentials: "include",
+        }
       );
 
+      if (!response.ok) {
+        throw new Error("Report request failed");
+      }
+
+      const data = await response.json();
       setReport(data);
     } catch {
-      setReportError(text.reportError);
+      setReportError(
+        isDari
+          ? "اطلاعات گزارش مصارف بارگذاری نشد."
+          : "Expense report could not be loaded."
+      );
     } finally {
       setReportLoading(false);
     }
   };
 
   useEffect(() => {
-    refreshReport();
-  }, [
-    reportStoreCode,
-    reportDate,
-    reportPeriod,
-  ]);
+    loadReport();
+  }, [reportStoreCode, reportDate, reportPeriod]);
+
+  const handleSave = async (
+    data: ExpenseFormData
+  ): Promise<void> => {
+    await createExpense(data);
+
+    await loadReport();
+  };
+
+  const storeOptionsForSidebar = stores.map((store) => ({
+    code: store.code,
+    name: isDari ? store.dari : store.english,
+  }));
 
   return (
     <div
@@ -258,26 +150,43 @@ export default function ExpensePage({
         <Sidebar
           isDari={isDari}
           labels={{
-            title: text.title,
-            storeName: text.storeSelector,
-            dashboard: text.dashboard,
-            managerWithdrawal: text.managerWithdrawal,
-            orders: text.orders,
-            customers: text.customers,
-            products: text.products,
-            directSales: text.directSales,
-            wholesaleAccounts: text.wholesaleAccounts,
-            expenses: text.expenses,
-            users: text.users,
-            logout: text.logout,
+            title: "پرده‌سرای بزرگ رویال",
+            storeName: isDari
+              ? "انتخاب فروشگاه"
+              : "Select Store",
+            dashboard: isDari
+              ? "داشبورد"
+              : "Dashboard",
+            managerWithdrawal: isDari
+              ? "برداشت شخصی مدیر"
+              : "Manager Withdrawal",
+            orders: isDari
+              ? "سفارش‌ها"
+              : "Orders",
+            customers: isDari
+              ? "مشتریان"
+              : "Customers",
+            products: isDari
+              ? "محصولات"
+              : "Products",
+            directSales: isDari
+              ? "فروش مستقیم"
+              : "Direct Sales",
+            wholesaleAccounts: isDari
+              ? "عمده‌فروشان"
+              : "Wholesale Accounts",
+            expenses: isDari
+              ? "مصارف"
+              : "Expenses",
+            users: isDari
+              ? "کاربران"
+              : "Users",
+            logout: isDari
+              ? "خروج"
+              : "Logout",
           }}
-          selectedStoreCode={storeCode}
-          storeOptions={storeOptions.map((store) => ({
-            code: store.code,
-            name: isDari
-              ? store.dari
-              : store.english,
-          }))}
+          selectedStoreCode={reportStoreCode}
+          storeOptions={storeOptionsForSidebar}
           onStoreChange={(nextStoreCode) => {
             window.location.assign(
               `/expenses/new?store=${nextStoreCode}`
@@ -291,150 +200,183 @@ export default function ExpensePage({
           }}
           onDirectSale={() => {
             window.location.assign(
-              `/dashboard?store=${storeCode}`
+              `/dashboard?store=${reportStoreCode}`
             );
           }}
         />
 
         <main className="min-w-0 flex-1">
-          <header className="border-b border-[#e9e1d4] bg-[#fffdf9] px-5 py-4 sm:px-8 lg:px-12">
-            <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
-              <h1 className="text-2xl font-bold text-[#173f38] sm:text-3xl">
-                {text.pageTitle}
-              </h1>
+          <header className="border-b border-[#e9e1d4] bg-[#fffdf9] px-5 py-5 sm:px-8 lg:px-12">
+            <div className="mx-auto flex max-w-6xl items-center justify-between gap-5">
+              <div>
+                <p className="mb-1 text-sm text-[#9a8063]">
+                  {isDari
+                    ? "خانه ← مصارف"
+                    : "Home ← Expenses"}
+                </p>
+
+                <h1 className="text-2xl font-bold text-[#173f38] sm:text-3xl">
+                  {isDari
+                    ? "ثبت مصرف یا برداشت"
+                    : "Record Expense or Withdrawal"}
+                </h1>
+              </div>
 
               <div className="flex rounded-full border border-[#d8cbb9] bg-white p-1 text-sm">
                 <button
                   type="button"
-                  onClick={() =>
-                    setLanguage("dari")
-                  }
+                  onClick={() => setIsDari(true)}
                   className={`rounded-full px-4 py-2 ${
                     isDari
                       ? "bg-[#d7ad62] text-white"
                       : "text-[#64756f]"
                   }`}
                 >
-                  {text.dari}
+                  دری
                 </button>
 
                 <button
                   type="button"
-                  onClick={() =>
-                    setLanguage("english")
-                  }
+                  onClick={() => setIsDari(false)}
                   className={`rounded-full px-4 py-2 ${
                     !isDari
                       ? "bg-[#d7ad62] text-white"
                       : "text-[#64756f]"
                   }`}
                 >
-                  {text.english}
+                  EN
                 </button>
               </div>
             </div>
           </header>
 
-          <section className="px-5 py-4 sm:px-8 lg:px-12">
+          <section className="px-5 py-6 sm:px-8 lg:px-12">
             <div className="mx-auto max-w-6xl">
-              <div className="mb-4 rounded-2xl border border-[#dfe8df] bg-[#f4faf4] px-5 py-3">
+              <div className="mb-5 rounded-2xl border border-[#dfe8df] bg-[#f4faf4] px-5 py-4">
                 <label
                   htmlFor="expense-store"
                   className="mb-2 block text-sm font-bold text-[#173f38]"
                 >
-                  {text.storeForExpense}
+                  {isDari
+                    ? "فروشگاه مصرف"
+                    : "Expense Store"}
                 </label>
 
                 <select
                   id="expense-store"
                   value={formStoreCode}
-                  onChange={(event) =>
-                    setFormStoreCode(
-                      event.target.value
-                    )
-                  }
-                  className="w-full rounded-xl border border-[#cbd8cc] bg-white px-4 py-3 font-bold text-[#173f38] outline-none focus:border-[#d7ad62] focus:ring-2 focus:ring-[#d7ad62]/20"
+                  onChange={(event) => {
+                    setFormStoreCode(event.target.value);
+                    setReportStoreCode(event.target.value);
+                  }}
+                  className="form-input"
+                  required
                 >
                   <option value="">
-                    {text.chooseStore}
+                    {isDari
+                      ? "لطفاً فروشگاه را انتخاب کنید"
+                      : "Please select a store"}
                   </option>
 
-                  {formStoreOptions.map((store) => (
-                    <option
-                      key={store.code}
-                      value={store.code}
-                    >
-                      {isDari
-                        ? store.dari
-                        : store.english}
-                    </option>
-                  ))}
+                  {stores
+                    .filter((store) => store.code !== "all")
+                    .map((store) => (
+                      <option
+                        key={store.code}
+                        value={store.code}
+                      >
+                        {isDari
+                          ? store.dari
+                          : store.english}
+                      </option>
+                    ))}
                 </select>
               </div>
 
               <ExpenseForm
                 storeCode={formStoreCode}
+                storeName={
+                  currentStore
+                    ? isDari
+                      ? currentStore.dari
+                      : currentStore.english
+                    : ""
+                }
                 managerName={managerName}
                 isDari={isDari}
-                onCancel={handleCancel}
+                onCancel={() => window.history.back()}
                 onSaved={handleSave}
               />
 
-              <section className="mt-6">
-                <h2 className="mb-4 text-2xl font-bold text-[#173f38] sm:text-3xl">
-                  {text.reportTitle}
+              <section className="mt-7 rounded-3xl border border-[#e5ddd0] bg-white p-5 shadow-[0_12px_35px_rgba(23,63,56,0.07)] sm:p-7">
+                <h2 className="mb-5 text-2xl font-bold text-[#173f38]">
+                  {isDari
+                    ? "گزارش مصارف"
+                    : "Expense Report"}
                 </h2>
 
                 <ExpenseReportFilters
-                  selectedStoreCode={reportStoreCode}
-                  date={reportDate}
-                  period={reportPeriod}
-                  storeOptions={storeOptions.map(
-                    (store) => ({
-                      code: store.code,
-                      name: isDari
-                        ? store.dari
-                        : store.english,
-                    })
-                  )}
                   isDari={isDari}
-                  onStoreChange={setReportStoreCode}
+                  storeOptions={stores}
+                  selectedStoreCode={reportStoreCode}
+                  selectedDate={reportDate}
+                  period={reportPeriod}
+                  onStoreChange={(value) => {
+                    setReportStoreCode(value);
+                    setFormStoreCode(
+                      value === "all" ? "" : value
+                    );
+                  }}
                   onDateChange={setReportDate}
                   onPeriodChange={setReportPeriod}
                 />
 
-                {reportLoading ? (
-                  <div className="rounded-2xl border border-[#eadfce] bg-white px-6 py-10 text-center text-[#71817a] shadow-sm">
-                    {text.loading}
-                  </div>
-                ) : reportError ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-6 py-10 text-center text-red-700 shadow-sm">
+                {reportLoading && (
+                  <p className="mt-6 text-[#6d7b75]">
+                    {isDari
+                      ? "در حال بارگذاری..."
+                      : "Loading..."}
+                  </p>
+                )}
+
+                {reportError && !reportLoading && (
+                  <div className="mt-6 rounded-xl bg-[#fff1ef] px-4 py-3 text-sm font-semibold text-[#b42318]">
                     <p>{reportError}</p>
 
                     <button
                       type="button"
-                      onClick={refreshReport}
-                      className="mt-4 rounded-xl bg-[#173f38] px-5 py-2.5 font-bold text-white"
+                      onClick={loadReport}
+                      className="mt-2 underline"
                     >
-                      {text.retry}
+                      {isDari
+                        ? "تلاش دوباره"
+                        : "Try again"}
                     </button>
                   </div>
-                ) : (
+                )}
+
+                {report && !reportLoading && !reportError && (
                   <>
                     <ExpenseSummaryCards
-                      totalRecords={
-                        report.totalRecords
-                      }
+                      isDari={isDari}
+                      totalRecords={report.totalRecords}
                       totalAfn={report.totalAfn}
                       totalUsd={report.totalUsd}
-                      isDari={isDari}
                     />
 
                     <ExpenseTable
-                      records={report.records}
                       isDari={isDari}
+                      records={report.records}
                     />
                   </>
+                )}
+
+                {selectedReportStore && (
+                  <p className="mt-5 text-sm text-[#89948c]">
+                    {isDari
+                      ? `فروشگاه: ${selectedReportStore.dari}`
+                      : `Store: ${selectedReportStore.english}`}
+                  </p>
                 )}
               </section>
             </div>

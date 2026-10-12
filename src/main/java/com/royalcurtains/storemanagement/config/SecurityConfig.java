@@ -4,10 +4,16 @@ import com.royalcurtains.storemanagement.security.DatabaseUserDetailsService;
 import com.royalcurtains.storemanagement.security.RoleBasedLoginSuccessHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 public class SecurityConfig {
@@ -29,20 +35,56 @@ public class SecurityConfig {
     }
 
     @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration =
+                new CorsConfiguration();
+
+        configuration.setAllowedOrigins(
+                List.of("http://localhost:5173")
+        );
+
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
+
+        configuration.setAllowedHeaders(
+                List.of("*")
+        );
+
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
+        return source;
+    }
+
+    @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http) throws Exception {
 
         http
-                .userDetailsService(userDetailsService)
+                .cors(cors -> {
+                })
 
-                /*
-                 * React sends POST requests to /api/**.
-                 * These requests still require login, but they do not
-                 * contain Thymeleaf's hidden CSRF form token.
-                 */
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/api/**")
+                        .ignoringRequestMatchers(
+                                "/api/**"
+                        )
                 )
+
+                .userDetailsService(userDetailsService)
 
                 .authorizeHttpRequests(auth -> auth
 
@@ -51,15 +93,17 @@ public class SecurityConfig {
                                 "/home",
                                 "/login",
                                 "/access-denied",
-                                "/error",
-                                "/css/**",
-                                "/js/**",
-                                "/images/**"
+                                "/css/**"
                         ).permitAll()
 
-                        // React API requests require a logged-in user.
-                        .requestMatchers("/api/**")
-                        .authenticated()
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        ).permitAll()
+
+                        .requestMatchers(
+                                "/api/expenses/**"
+                        ).hasRole("MANAGER")
 
                         .requestMatchers(
                                 "/dashboard",
@@ -80,7 +124,6 @@ public class SecurityConfig {
                                 "ACCOUNTANT"
                         )
 
-                        // Supplier features are manager-only.
                         .requestMatchers(
                                 "/suppliers/**",
                                 "/supplier-purchases/**",
@@ -124,10 +167,7 @@ public class SecurityConfig {
                 )
 
                 .logout(logout -> logout
-                        .logoutUrl("/logout")
                         .logoutSuccessUrl("/")
-                        .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID")
                         .permitAll()
                 )
 

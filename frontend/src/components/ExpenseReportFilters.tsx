@@ -6,136 +6,148 @@ export type ReportPeriod =
 
 type StoreOption = {
   code: string;
-  name: string;
+  dari: string;
+  english: string;
 };
 
 type ExpenseReportFiltersProps = {
-  selectedStoreCode: string;
-  date: string;
-  period: ReportPeriod;
-  storeOptions: StoreOption[];
   isDari?: boolean;
-  onStoreChange: (storeCode: string) => void;
-  onDateChange: (date: string) => void;
-  onPeriodChange: (period: ReportPeriod) => void;
+  storeOptions: StoreOption[];
+  selectedStoreCode: string;
+  selectedDate: string;
+  period: ReportPeriod;
+  onStoreChange: (value: string) => void;
+  onDateChange: (value: string) => void;
+  onPeriodChange: (value: ReportPeriod) => void;
 };
 
-const periods: {
-  value: ReportPeriod;
-  dari: string;
-  english: string;
-}[] = [
-  {
-    value: "today",
-    dari: "امروز",
-    english: "Today",
-  },
-  {
-    value: "week",
-    dari: "هفته",
-    english: "Week",
-  },
-  {
-    value: "month",
-    dari: "ماه",
-    english: "Month",
-  },
-  {
-    value: "year",
-    dari: "سال",
-    english: "Year",
-  },
-];
-
 export default function ExpenseReportFilters({
-  selectedStoreCode,
-  date,
-  period,
-  storeOptions,
   isDari = true,
+  storeOptions,
+  selectedStoreCode,
+  selectedDate,
+  period,
   onStoreChange,
   onDateChange,
   onPeriodChange,
 }: ExpenseReportFiltersProps) {
+  const periods: Array<{
+    value: ReportPeriod;
+    dari: string;
+    english: string;
+  }> = [
+    {
+      value: "today",
+      dari: "امروز",
+      english: "Today",
+    },
+    {
+      value: "week",
+      dari: "هفته",
+      english: "Week",
+    },
+    {
+      value: "month",
+      dari: "ماه",
+      english: "Month",
+    },
+    {
+      value: "year",
+      dari: "سال",
+      english: "Year",
+    },
+  ];
+
   return (
-    <section className="mb-6 rounded-2xl border border-[#eadfce] bg-white p-4 shadow-sm">
-      <div
-        dir={isDari ? "rtl" : "ltr"}
-        className="grid gap-4 xl:grid-cols-[1fr_auto_auto]"
-      >
-        <div>
-          <label
-            htmlFor="expense-report-store"
-            className="mb-2 block text-sm font-bold text-[#173f38]"
-          >
-            {isDari ? "فروشگاه" : "Store"}
-          </label>
+    <div className="grid gap-5 rounded-2xl border border-[#e5ddd0] bg-[#fffdf9] p-5 md:grid-cols-3">
+      <div>
+        <label
+          htmlFor="report-store"
+          className="mb-2 block text-sm font-bold text-[#173f38]"
+        >
+          {isDari ? "فروشگاه" : "Store"}
+        </label>
 
-          <select
-            id="expense-report-store"
-            value={selectedStoreCode}
-            onChange={(event) =>
-              onStoreChange(event.target.value)
-            }
-            className="w-full rounded-xl border border-[#d9cdbd] bg-[#fffdf9] px-4 py-2.5 text-right text-[#173f38] outline-none transition focus:border-[#d7ad62] focus:ring-2 focus:ring-[#d7ad62]/20"
-          >
-            {storeOptions.map((store) => (
-              <option
-                key={store.code}
-                value={store.code}
-              >
-                {store.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <select
+          id="report-store"
+          value={selectedStoreCode}
+          onChange={(event) =>
+            onStoreChange(event.target.value)
+          }
+          className="w-full appearance-none rounded-xl border border-[#d8cbb9] bg-white px-4 py-3 text-right font-semibold text-[#173f38] outline-none focus:border-[#c89232] focus:ring-2 focus:ring-[#c89232]/30"
+          style={{
+            color: "#173f38",
+            backgroundColor: "#ffffff",
+            colorScheme: "light",
+          }}
+        >
+          {storeOptions.map((store) => (
+            <option
+              key={store.code}
+              value={store.code}
+              style={{
+                color: "#173f38",
+                backgroundColor: "#ffffff",
+              }}
+            >
+              {isDari ? store.dari : store.english}
+            </option>
+          ))}
+        </select>
+      </div>
 
-        <div>
-          <label
-            htmlFor="expense-report-date"
-            className="mb-2 block text-sm font-bold text-[#173f38]"
-          >
-            {isDari ? "تاریخ" : "Date"}
-          </label>
+      <div>
+        <label
+          htmlFor="report-date"
+          className="mb-2 block text-sm font-bold text-[#173f38]"
+        >
+          {isDari ? "تاریخ" : "Date"}
+        </label>
 
-          <input
-            id="expense-report-date"
-            type="date"
-            value={date}
-            onChange={(event) =>
-              onDateChange(event.target.value)
-            }
-            className="rounded-xl border border-[#d9cdbd] bg-[#fffdf9] px-4 py-2.5 text-[#173f38] outline-none transition focus:border-[#d7ad62] focus:ring-2 focus:ring-[#d7ad62]/20"
-          />
-        </div>
+        <input
+          id="report-date"
+          type="date"
+          value={selectedDate}
+          onChange={(event) =>
+            onDateChange(event.target.value)
+          }
+          className="w-full rounded-xl border border-[#d8cbb9] bg-white px-4 py-3 font-semibold text-[#173f38] outline-none focus:border-[#c89232] focus:ring-2 focus:ring-[#c89232]/30"
+          style={{
+            color: "#173f38",
+            backgroundColor: "#ffffff",
+            colorScheme: "light",
+          }}
+        />
+      </div>
 
-        <div>
-          <span className="mb-2 block text-sm font-bold text-[#173f38]">
-            {isDari ? "دوره گزارش" : "Report Period"}
-          </span>
+      <div>
+        <p className="mb-2 text-sm font-bold text-[#173f38]">
+          {isDari ? "دوره گزارش" : "Report Period"}
+        </p>
 
-          <div className="flex flex-wrap gap-2">
-            {periods.map((item) => (
+        <div className="grid grid-cols-4 gap-2">
+          {periods.map((item) => {
+            const active = period === item.value;
+
+            return (
               <button
                 key={item.value}
                 type="button"
                 onClick={() =>
                   onPeriodChange(item.value)
                 }
-                className={`rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
-                  period === item.value
-                    ? "bg-[#173f38] text-white"
-                    : "border border-[#d9cdbd] bg-[#fffdf9] text-[#587068] hover:border-[#d7ad62]"
+                className={`rounded-xl border px-3 py-3 text-sm font-bold transition ${
+                  active
+                    ? "border-[#164d43] bg-[#164d43] text-white"
+                    : "border-[#d8cbb9] bg-white text-[#64756f] hover:border-[#c89232] hover:text-[#173f38]"
                 }`}
               >
-                {isDari
-                  ? item.dari
-                  : item.english}
+                {isDari ? item.dari : item.english}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
-    </section>
+    </div>
   );
 }
