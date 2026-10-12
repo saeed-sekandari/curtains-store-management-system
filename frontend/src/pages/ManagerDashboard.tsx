@@ -12,12 +12,9 @@ import type {
 } from "../types/dashboard";
 
 export default function ManagerDashboard() {
-  const [language, setLanguage] =
-    useState<Language>("dari");
-
-  const [dashboard, setDashboard] =
-    useState<DashboardData | null>(null);
-
+  const [language, setLanguage] = useState<Language>("dari");
+  const [selectedStoreCode, setSelectedStoreCode] = useState("all");
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showSaleForm, setShowSaleForm] = useState(false);
@@ -30,7 +27,13 @@ export default function ManagerDashboard() {
       ? "پرده سرای بزرگ رویال"
       : "Royal Curtains Store",
 
+    storeName: isDari ? "انتخاب فروشگاه" : "Choose Store",
+
     dashboard: isDari ? "داشبورد" : "Dashboard",
+
+    managerWithdrawal: isDari
+      ? "برداشت شخصی مدیر"
+      : "Manager Withdrawal",
 
     welcome: isDari
       ? "به سیستم مدیریت فروشگاه خوش آمدید"
@@ -130,12 +133,16 @@ export default function ManagerDashboard() {
     notes: isDari ? "یادداشت" : "Notes",
 
     royalCurtains: isDari
-      ? "فروشگاه پرده سرای رویال"
+      ? "فروشگاه رویال"
       : "Royal Curtains Store",
 
     kabulDubai: isDari
-      ? "فروشگاه پرده کابل دبی"
+      ? "فروشگاه کابل دبی"
       : "Kabul Dubai Curtains Store",
+
+    allStores: isDari
+      ? "همه فروشگاه‌ها"
+      : "All Stores",
 
     noProducts: isDari
       ? "محصولی در انبار پیدا نشد."
@@ -154,11 +161,11 @@ export default function ManagerDashboard() {
     saving: isDari ? "در حال ثبت..." : "Saving...",
   };
 
-  const loadDashboard = async () => {
+  const loadDashboard = async (storeCode: string) => {
     try {
       setLoading(true);
 
-      const data = await getDashboard("all");
+      const data = await getDashboard(storeCode);
 
       setDashboard(data);
       setError("");
@@ -174,8 +181,14 @@ export default function ManagerDashboard() {
   };
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    void loadDashboard(selectedStoreCode);
+  }, [selectedStoreCode]);
+
+  const handleManagerWithdrawal = () => {
+    window.location.assign(
+      `http://localhost:8080/expenses/new?store=${selectedStoreCode}`
+    );
+  };
 
   if (loading) {
     return (
@@ -208,8 +221,9 @@ export default function ManagerDashboard() {
         <Sidebar
           labels={{
             title: text.title,
-            storeName: text.royalCurtains,
+            storeName: text.storeName,
             dashboard: text.dashboard,
+            managerWithdrawal: text.managerWithdrawal,
             orders: text.orders,
             customers: text.customers,
             products: text.products,
@@ -219,6 +233,23 @@ export default function ManagerDashboard() {
             users: text.users,
             logout: text.logout,
           }}
+          selectedStoreCode={selectedStoreCode}
+          storeOptions={[
+            {
+              code: "all",
+              name: text.allStores,
+            },
+            {
+              code: "royal",
+              name: text.royalCurtains,
+            },
+            {
+              code: "kabul",
+              name: text.kabulDubai,
+            },
+          ]}
+          onStoreChange={setSelectedStoreCode}
+          onManagerWithdrawal={handleManagerWithdrawal}
           onDirectSale={() => setShowSaleForm(true)}
         />
 
@@ -236,6 +267,7 @@ export default function ManagerDashboard() {
 
             <div className="flex rounded-full border border-[#d8cbb9] bg-white p-1 text-sm">
               <button
+                type="button"
                 onClick={() => setLanguage("dari")}
                 className={`rounded-full px-4 py-2 ${
                   isDari
@@ -247,6 +279,7 @@ export default function ManagerDashboard() {
               </button>
 
               <button
+                type="button"
                 onClick={() => setLanguage("english")}
                 className={`rounded-full px-4 py-2 ${
                   !isDari
@@ -339,7 +372,7 @@ export default function ManagerDashboard() {
           onClose={() => setShowSaleForm(false)}
           onSaved={() => {
             setShowSaleForm(false);
-            loadDashboard();
+            void loadDashboard(selectedStoreCode);
           }}
         />
       )}
