@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type { FormEvent } from "react";
 
 import ExpenseFields from "./ExpenseFields";
@@ -48,12 +48,6 @@ export default function ExpenseForm({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
-
-  const selectedOption = useMemo(() => {
-    return expenseOptions.find(
-      (option) => option.value === category
-    );
-  }, [category]);
 
   const isManagerWithdrawal =
     category === "MANAGER_WITHDRAWAL";
