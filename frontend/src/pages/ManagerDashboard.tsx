@@ -12,12 +12,19 @@ import type {
 } from "../types/dashboard";
 
 export default function ManagerDashboard() {
-  const [language, setLanguage] = useState<Language>("dari");
-  const [selectedStoreCode, setSelectedStoreCode] = useState("all");
-  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [language, setLanguage] =
+    useState<Language>("dari");
+
+  const [selectedStoreCode, setSelectedStoreCode] =
+    useState("all");
+
+  const [dashboard, setDashboard] =
+    useState<DashboardData | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [showSaleForm, setShowSaleForm] = useState(false);
+  const [showSaleForm, setShowSaleForm] =
+    useState(false);
 
   const isDari = language === "dari";
   const currency = isDari ? "افغانی" : "AFN";
@@ -27,9 +34,13 @@ export default function ManagerDashboard() {
       ? "پرده سرای بزرگ رویال"
       : "Royal Curtains Store",
 
-    storeName: isDari ? "انتخاب فروشگاه" : "Choose Store",
+    storeName: isDari
+      ? "انتخاب فروشگاه"
+      : "Choose Store",
 
-    dashboard: isDari ? "داشبورد" : "Dashboard",
+    dashboard: isDari
+      ? "داشبورد"
+      : "Dashboard",
 
     managerWithdrawal: isDari
       ? "برداشت شخصی مدیر"
@@ -40,8 +51,14 @@ export default function ManagerDashboard() {
       : "Welcome to the store management system",
 
     orders: isDari ? "سفارش‌ها" : "Orders",
-    customers: isDari ? "مشتریان" : "Customers",
-    products: isDari ? "محصولات" : "Products",
+
+    customers: isDari
+      ? "مشتریان"
+      : "Customers",
+
+    products: isDari
+      ? "محصولات"
+      : "Products",
 
     directSales: isDari
       ? "فروش مستقیم"
@@ -51,9 +68,17 @@ export default function ManagerDashboard() {
       ? "عمده‌فروشان"
       : "Wholesale Accounts",
 
-    expenses: isDari ? "مصارف" : "Expenses",
-    users: isDari ? "کاربران" : "Users",
-    logout: isDari ? "خروج" : "Logout",
+    expenses: isDari
+      ? "مصارف"
+      : "Expenses",
+
+    users: isDari
+      ? "کاربران"
+      : "Users",
+
+    logout: isDari
+      ? "خروج"
+      : "Logout",
 
     todayOrders: isDari
       ? "سفارش‌های امروز"
@@ -99,12 +124,33 @@ export default function ManagerDashboard() {
       ? "امروز هنوز فروشی ثبت نشده است."
       : "No sales have been recorded today.",
 
-    time: isDari ? "زمان" : "Time",
-    saleType: isDari ? "نوع فروش" : "Sale Type",
-    amount: isDari ? "مبلغ" : "Amount",
-    today: isDari ? "امروز" : "Today",
+    noExpenses: isDari
+      ? "امروز مصرفی ثبت نشده است."
+      : "No expenses have been recorded today.",
 
-    store: isDari ? "فروشگاه" : "Store",
+    time: isDari
+      ? "زمان"
+      : "Time",
+
+    saleType: isDari
+      ? "نوع فروش"
+      : "Sale Type",
+
+    amount: isDari
+      ? "مبلغ"
+      : "Amount",
+
+    today: isDari
+      ? "امروز"
+      : "Today",
+
+    store: isDari
+      ? "فروشگاه"
+      : "Store",
+
+    expense: isDari
+      ? "مصرف"
+      : "Expense",
 
     searchProduct: isDari
       ? "جستجوی محصول از انبار"
@@ -130,7 +176,9 @@ export default function ManagerDashboard() {
       ? "قیمت کل (افغانی)"
       : "Total Price (AFN)",
 
-    notes: isDari ? "یادداشت" : "Notes",
+    notes: isDari
+      ? "یادداشت"
+      : "Notes",
 
     royalCurtains: isDari
       ? "فروشگاه رویال"
@@ -156,12 +204,79 @@ export default function ManagerDashboard() {
       ? "ثبت فروش مستقیم"
       : "Record Direct Sale",
 
-    cancel: isDari ? "لغو" : "Cancel",
-    saveSale: isDari ? "ثبت فروش" : "Save Sale",
-    saving: isDari ? "در حال ثبت..." : "Saving...",
+    cancel: isDari
+      ? "لغو"
+      : "Cancel",
+
+    saveSale: isDari
+      ? "ثبت فروش"
+      : "Save Sale",
+
+    saving: isDari
+      ? "در حال ثبت..."
+      : "Saving...",
   };
 
-  const loadDashboard = async (storeCode: string) => {
+  const getExpenseLabel = (category: string) => {
+    const labels: Record<
+      string,
+      [string, string]
+    > = {
+      STORE_RENT: ["کرایه دکان", "Store Rent"],
+      UTILITIES: ["برق و آب", "Utilities"],
+      TAX: ["مالیات", "Tax"],
+      TRANSPORTATION: ["ترانسپورت", "Transportation"],
+      EMPLOYEE_PAYMENT: [
+        "پرداخت کارمند",
+        "Employee Payment",
+      ],
+      TAILOR_PAYMENT: [
+        "پرداخت خیاط",
+        "Tailor Payment",
+      ],
+      MANAGER_WITHDRAWAL: [
+        "برداشت شخصی مدیر",
+        "Manager Withdrawal",
+      ],
+      OTHER: ["مصرف دیگر", "Other Expense"],
+    };
+
+    const label = labels[category];
+
+    if (!label) {
+      return category;
+    }
+
+    return isDari ? label[0] : label[1];
+  };
+
+  const formatExpenseTime = (dateTime: string) => {
+    if (dateTime.includes("T")) {
+      return dateTime.substring(11, 16);
+    }
+
+    return dateTime.substring(0, 5);
+  };
+
+  const formatExpenseAmount = (
+    amount: number,
+    expenseCurrency: string
+  ) => {
+    const displayedCurrency =
+      expenseCurrency.toUpperCase() === "USD"
+        ? "USD"
+        : isDari
+          ? "افغانی"
+          : "AFN";
+
+    return `${amount.toLocaleString(
+      "en-US"
+    )} ${displayedCurrency}`;
+  };
+
+  const loadDashboard = async (
+    storeCode: string
+  ) => {
     try {
       setLoading(true);
 
@@ -196,7 +311,9 @@ export default function ManagerDashboard() {
         dir={isDari ? "rtl" : "ltr"}
         className="flex min-h-screen items-center justify-center bg-[#fbf8f1] text-xl text-[#173f38]"
       >
-        {isDari ? "در حال بارگذاری..." : "Loading..."}
+        {isDari
+          ? "در حال بارگذاری..."
+          : "Loading..."}
       </div>
     );
   }
@@ -223,12 +340,14 @@ export default function ManagerDashboard() {
             title: text.title,
             storeName: text.storeName,
             dashboard: text.dashboard,
-            managerWithdrawal: text.managerWithdrawal,
+            managerWithdrawal:
+              text.managerWithdrawal,
             orders: text.orders,
             customers: text.customers,
             products: text.products,
             directSales: text.directSales,
-            wholesaleAccounts: text.wholesaleAccounts,
+            wholesaleAccounts:
+              text.wholesaleAccounts,
             expenses: text.expenses,
             users: text.users,
             logout: text.logout,
@@ -249,8 +368,12 @@ export default function ManagerDashboard() {
             },
           ]}
           onStoreChange={setSelectedStoreCode}
-          onManagerWithdrawal={handleManagerWithdrawal}
-          onDirectSale={() => setShowSaleForm(true)}
+          onManagerWithdrawal={
+            handleManagerWithdrawal
+          }
+          onDirectSale={() =>
+            setShowSaleForm(true)
+          }
         />
 
         <main className="min-w-0 flex-1">
@@ -280,7 +403,9 @@ export default function ManagerDashboard() {
 
               <button
                 type="button"
-                onClick={() => setLanguage("english")}
+                onClick={() =>
+                  setLanguage("english")
+                }
                 className={`rounded-full px-4 py-2 ${
                   !isDari
                     ? "bg-[#d7ad62] text-white"
@@ -336,14 +461,86 @@ export default function ManagerDashboard() {
               currency={currency}
               labels={{
                 title: text.todaysSales,
-                description: text.salesDescription,
+                description:
+                  text.salesDescription,
                 noSales: text.noSales,
                 time: text.time,
                 saleType: text.saleType,
                 amount: text.amount,
                 today: text.today,
+                store: text.store,
               }}
             />
+
+            <section className="mt-5 rounded-3xl border border-[#e9e1d4] bg-white p-5 shadow-[0_12px_35px_rgba(61,49,35,0.06)] sm:p-7">
+              <h2 className="mb-5 text-xl font-bold text-[#173f38]">
+                {text.todayExpenses}
+              </h2>
+
+              {dashboard.todayExpenses.length === 0 ? (
+                <p className="rounded-2xl bg-[#fbf8f1] p-6 text-center text-[#8b8175]">
+                  {text.noExpenses}
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full min-w-[700px] border-collapse text-right">
+                    <thead>
+                      <tr className="border-b border-[#eee6db] text-sm text-[#8b8175]">
+                        <th className="px-4 py-4 font-medium">
+                          {text.expense}
+                        </th>
+
+                        <th className="px-4 py-4 font-medium">
+                          {text.amount}
+                        </th>
+
+                        <th className="px-4 py-4 font-medium">
+                          {text.store}
+                        </th>
+
+                        <th className="px-4 py-4 font-medium">
+                          {text.time}
+                        </th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {dashboard.todayExpenses.map(
+                        (expense, index) => (
+                          <tr
+                            key={`${expense.dateTime}-${expense.category}-${index}`}
+                            className="border-b border-[#f2ece3] last:border-0"
+                          >
+                            <td className="px-4 py-5 font-semibold text-[#173f38]">
+                              {getExpenseLabel(
+                                expense.category
+                              )}
+                            </td>
+
+                            <td className="px-4 py-5 font-semibold text-[#173f38]">
+                              {formatExpenseAmount(
+                                expense.amount,
+                                expense.currency
+                              )}
+                            </td>
+
+                            <td className="px-4 py-5 text-sm text-[#4f5f59]">
+                              {expense.storeName}
+                            </td>
+
+                            <td className="px-4 py-5 text-sm text-[#766c60]">
+                              {formatExpenseTime(
+                                expense.dateTime
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           </section>
         </main>
       </div>
@@ -357,22 +554,30 @@ export default function ManagerDashboard() {
             searchProduct: text.searchProduct,
             productCode: text.productCode,
             available: text.available,
-            quantityMeters: text.quantityMeters,
-            pricePerMeter: text.pricePerMeter,
+            quantityMeters:
+              text.quantityMeters,
+            pricePerMeter:
+              text.pricePerMeter,
             totalPrice: text.totalPrice,
             notes: text.notes,
-            royalCurtains: text.royalCurtains,
+            royalCurtains:
+              text.royalCurtains,
             kabulDubai: text.kabulDubai,
             noProducts: text.noProducts,
-            changeProduct: text.changeProduct,
+            changeProduct:
+              text.changeProduct,
             cancel: text.cancel,
             saveSale: text.saveSale,
             saving: text.saving,
           }}
-          onClose={() => setShowSaleForm(false)}
+          onClose={() =>
+            setShowSaleForm(false)
+          }
           onSaved={() => {
             setShowSaleForm(false);
-            void loadDashboard(selectedStoreCode);
+            void loadDashboard(
+              selectedStoreCode
+            );
           }}
         />
       )}

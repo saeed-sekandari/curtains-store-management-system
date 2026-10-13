@@ -28,16 +28,17 @@ public class Order {
     @Column(nullable = false, precision = 14, scale = 2)
     private BigDecimal totalAmount;
 
-    // Kept for compatibility with older records.
     @Column(precision = 14, scale = 2)
     private BigDecimal depositAmount;
 
-    // ACTIVE or CANCELLED
     @Column(nullable = false, length = 30)
     private String status;
 
     @Column(nullable = false)
     private LocalDate createdDate;
+
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "cancelled_by")
@@ -51,6 +52,7 @@ public class Order {
     public Order() {
         this.status = "ACTIVE";
         this.createdDate = LocalDate.now();
+        this.createdAt = LocalDateTime.now();
         this.depositAmount = BigDecimal.ZERO;
     }
 
@@ -112,6 +114,14 @@ public class Order {
 
     public void setCreatedDate(LocalDate createdDate) {
         this.createdDate = createdDate;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 
     public User getCancelledBy() {

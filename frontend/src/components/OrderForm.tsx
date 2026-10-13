@@ -22,6 +22,22 @@ type OrderFormProps = {
   ) => Promise<void>;
 };
 
+function toEnglishNumbers(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (digit) =>
+      String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))
+    )
+    .replace(/[٠-٩]/g, (digit) =>
+      String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))
+    )
+    .replace(/٫/g, ".")
+    .replace(/،/g, ".");
+}
+
+function normalizeMoneyInput(value: string): string {
+  return toEnglishNumbers(value);
+}
+
 export default function OrderForm({
   storeCode,
   formData,
@@ -85,7 +101,6 @@ export default function OrderForm({
     currency: isDari ? "افغانی" : "AFN",
     save: isDari ? "ثبت سفارش" : "Save Order",
     cancel: isDari ? "لغو" : "Cancel",
-    required: isDari ? "الزامی" : "Required",
     saving: isDari
       ? "در حال ثبت..."
       : "Saving...",
@@ -103,10 +118,7 @@ export default function OrderForm({
   function validate(): boolean {
     setError("");
 
-    if (
-      !useNewCustomer &&
-      !customerId
-    ) {
+    if (!useNewCustomer && !customerId) {
       setError(text.customerRequired);
       return false;
     }
@@ -128,9 +140,14 @@ export default function OrderForm({
       return false;
     }
 
-    const total = Number(totalAmount);
+    const total = Number(
+      normalizeMoneyInput(totalAmount)
+    );
+
     const payment = initialPaymentAmount
-      ? Number(initialPaymentAmount)
+      ? Number(
+          normalizeMoneyInput(initialPaymentAmount)
+        )
       : 0;
 
     if (!Number.isFinite(total) || total <= 0) {
@@ -161,10 +178,18 @@ export default function OrderForm({
 
     const request: CreateOrderRequest = {
       storeCode,
-      orderNumber: orderNumber.trim(),
-      totalAmount: Number(totalAmount),
+      orderNumber: toEnglishNumbers(
+        orderNumber.trim()
+      ),
+      totalAmount: Number(
+        normalizeMoneyInput(totalAmount)
+      ),
       initialPaymentAmount: initialPaymentAmount
-        ? Number(initialPaymentAmount)
+        ? Number(
+            normalizeMoneyInput(
+              initialPaymentAmount
+            )
+          )
         : 0,
       initialPaymentMethod: "CASH",
       items,
@@ -173,8 +198,12 @@ export default function OrderForm({
     if (useNewCustomer) {
       request.newCustomerName =
         newCustomerName.trim();
+
       request.newCustomerPhone =
-        newCustomerPhone.trim();
+        toEnglishNumbers(
+          newCustomerPhone.trim()
+        );
+
       request.newCustomerAddress =
         newCustomerAddress.trim();
     } else {
@@ -274,7 +303,9 @@ export default function OrderForm({
                 >
                   {customer.fullName}
                   {customer.phone
-                    ? ` — ${customer.phone}`
+                    ? ` — ${toEnglishNumbers(
+                        customer.phone
+                      )}`
                     : ""}
                 </option>
               ))}
@@ -303,9 +334,15 @@ export default function OrderForm({
               </span>
 
               <input
+                type="text"
+                inputMode="numeric"
                 value={newCustomerPhone}
                 onChange={(event) =>
-                  setNewCustomerPhone(event.target.value)
+                  setNewCustomerPhone(
+                    toEnglishNumbers(
+                      event.target.value
+                    )
+                  )
                 }
                 className="form-input"
               />
@@ -337,9 +374,13 @@ export default function OrderForm({
           </span>
 
           <input
+            type="text"
+            inputMode="numeric"
             value={orderNumber}
             onChange={(event) =>
-              setOrderNumber(event.target.value)
+              setOrderNumber(
+                toEnglishNumbers(event.target.value)
+              )
             }
             className="form-input"
             required
@@ -352,14 +393,20 @@ export default function OrderForm({
           </span>
 
           <input
-            type="number"
-            min="0.01"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
             value={totalAmount}
-            onChange={(event) =>
-              setTotalAmount(event.target.value)
-            }
+            onChange={(event) => {
+              const value = normalizeMoneyInput(
+                event.target.value
+              );
+
+              if (/^\d*\.?\d*$/.test(value)) {
+                setTotalAmount(value);
+              }
+            }}
             className="form-input"
+            placeholder="0"
             required
           />
         </label>
@@ -370,16 +417,20 @@ export default function OrderForm({
           </span>
 
           <input
-            type="number"
-            min="0"
-            step="0.01"
+            type="text"
+            inputMode="decimal"
             value={initialPaymentAmount}
-            onChange={(event) =>
-              setInitialPaymentAmount(
+            onChange={(event) => {
+              const value = normalizeMoneyInput(
                 event.target.value
-              )
-            }
+              );
+
+              if (/^\d*\.?\d*$/.test(value)) {
+                setInitialPaymentAmount(value);
+              }
+            }}
             className="form-input"
+            placeholder="0"
           />
         </label>
       </section>

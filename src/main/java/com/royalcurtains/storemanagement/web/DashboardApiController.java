@@ -80,7 +80,6 @@ public class DashboardApiController {
         String storeCode;
 
         if ("all".equalsIgnoreCase(store)) {
-
             if (currentUser.getRole() != Role.MANAGER) {
                 throw new ResponseStatusException(
                         HttpStatus.FORBIDDEN,
@@ -104,7 +103,6 @@ public class DashboardApiController {
                     );
 
         } else {
-
             Store selectedStore = storeRepository
                     .findByCode(store.toLowerCase())
                     .orElseThrow(() ->
@@ -140,13 +138,17 @@ public class DashboardApiController {
 
         LocalDate today = LocalDate.now();
 
-        LocalDateTime todayStart = today.atStartOfDay();
-        LocalDateTime tomorrowStart = today
-                .plusDays(1)
-                .atStartOfDay();
+        LocalDateTime todayStart =
+                today.atStartOfDay();
 
-        LocalDate afghanMonthStart = getAfghanMonthStart(today);
-        LocalDate afghanMonthEnd = getAfghanMonthEnd(today);
+        LocalDateTime tomorrowStart =
+                today.plusDays(1).atStartOfDay();
+
+        LocalDate afghanMonthStart =
+                getAfghanMonthStart(today);
+
+        LocalDate afghanMonthEnd =
+                getAfghanMonthEnd(today);
 
         List<Order> activeOrders = orders.stream()
                 .filter(order ->
@@ -159,7 +161,8 @@ public class DashboardApiController {
         List<Order> todayOrders = activeOrders.stream()
                 .filter(order ->
                         order.getCreatedDate() != null
-                                && order.getCreatedDate().equals(today)
+                                && order.getCreatedDate()
+                                .equals(today)
                 )
                 .toList();
 
@@ -188,6 +191,18 @@ public class DashboardApiController {
                                 .isBefore(todayStart)
                                 && expense.getExpenseDate()
                                 .isBefore(tomorrowStart)
+                )
+                .toList();
+
+        List<ExpenseRow> expenseRows = todayExpenses.stream()
+                .map(expense ->
+                        new ExpenseRow(
+                                expense.getCategory(),
+                                expense.getAmount(),
+                                expense.getCurrency(),
+                                expense.getStore().getName(),
+                                expense.getExpenseDate().toString()
+                        )
                 )
                 .toList();
 
@@ -250,25 +265,40 @@ public class DashboardApiController {
         List<SaleRow> sales = new ArrayList<>();
 
         for (Order order : todayOrders) {
-            sales.add(new SaleRow(
-                    order.getCreatedDate()
-                            .atStartOfDay()
-                            .toString(),
-                    "CUSTOMER_ORDER",
-                    "Order #" + order.getOrderNumber(),
-                    order.getTotalAmount(),
-                    "AFN"
-            ));
+            String orderDateTime;
+
+            if (order.getCreatedAt() != null) {
+                orderDateTime =
+                        order.getCreatedAt().toString();
+            } else {
+                orderDateTime = order.getCreatedDate()
+                        .atStartOfDay()
+                        .toString();
+            }
+
+            sales.add(
+                    new SaleRow(
+                            orderDateTime,
+                            "CUSTOMER_ORDER",
+                            "Order #" + order.getOrderNumber(),
+                            order.getStore().getName(),
+                            order.getTotalAmount(),
+                            "AFN"
+                    )
+            );
         }
 
         for (DirectSale sale : todayDirectSales) {
-            sales.add(new SaleRow(
-                    sale.getSaleDate().toString(),
-                    "DIRECT_SALE",
-                    sale.getProductName(),
-                    sale.getTotalAmount(),
-                    sale.getCurrency()
-            ));
+            sales.add(
+                    new SaleRow(
+                            sale.getSaleDate().toString(),
+                            "DIRECT_SALE",
+                            sale.getProductName(),
+                            sale.getStore().getName(),
+                            sale.getTotalAmount(),
+                            sale.getCurrency()
+                    )
+            );
         }
 
         sales.sort(
@@ -305,7 +335,8 @@ public class DashboardApiController {
                 todayExpensesAfn,
                 todayExpensesUsd,
                 monthlySalesAfn,
-                sales
+                sales,
+                expenseRows
         );
     }
 
@@ -348,7 +379,8 @@ public class DashboardApiController {
                 && !date.isAfter(end);
     }
 
-    private LocalDate getAfghanMonthStart(LocalDate date) {
+    private LocalDate getAfghanMonthStart(
+            LocalDate date) {
 
         int year = AfghanDateUtil.getYear(date);
         int month = AfghanDateUtil.getMonth(date);
@@ -360,7 +392,8 @@ public class DashboardApiController {
         );
     }
 
-    private LocalDate getAfghanMonthEnd(LocalDate date) {
+    private LocalDate getAfghanMonthEnd(
+            LocalDate date) {
 
         int year = AfghanDateUtil.getYear(date);
         int month = AfghanDateUtil.getMonth(date);
@@ -392,7 +425,8 @@ public class DashboardApiController {
             BigDecimal todayExpensesAfn,
             BigDecimal todayExpensesUsd,
             BigDecimal monthlySalesAfn,
-            List<SaleRow> sales
+            List<SaleRow> sales,
+            List<ExpenseRow> todayExpenses
     ) {
     }
 
@@ -400,8 +434,18 @@ public class DashboardApiController {
             String dateTime,
             String type,
             String description,
+            String storeName,
             BigDecimal amount,
             String currency
+    ) {
+    }
+
+    public record ExpenseRow(
+            String category,
+            BigDecimal amount,
+            String currency,
+            String storeName,
+            String dateTime
     ) {
     }
 }

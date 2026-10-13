@@ -76,6 +76,7 @@ export type OrderSummary = {
   depositAmount: number;
   paidAmount: number;
   remainingAmount: number;
+  completionDate: string | null;
   status: string;
   createdDate: string;
   workStatus: string;

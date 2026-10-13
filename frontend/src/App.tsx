@@ -3,6 +3,7 @@ import ExpensePage from "./pages/ExpensePage";
 import InventoryPage from "./pages/InventoryPage";
 import InventoryProductForm from "./pages/InventoryProductForm";
 import OrdersPage from "./pages/OrdersPage";
+import OrderDetailsPage from "./pages/OrderDetailsPage";
 
 function App() {
   const currentPath = window.location.pathname;
@@ -14,8 +15,16 @@ function App() {
   const storeCode =
     searchParams.get("store") || "royal";
 
-  const editMatch = currentPath.match(
+  const inventoryEditMatch = currentPath.match(
     /^\/inventory\/(\d+)\/edit\/?$/
+  );
+
+  const orderEditMatch = currentPath.match(
+    /^\/orders\/(\d+)\/edit\/?$/
+  );
+
+  const orderDetailsMatch = currentPath.match(
+    /^\/orders\/(\d+)\/?$/
   );
 
   if (
@@ -43,6 +52,26 @@ function App() {
     );
   }
 
+  if (orderEditMatch) {
+    return (
+      <OrderDetailsPage
+        orderId={Number(orderEditMatch[1])}
+        storeCode={storeCode}
+        mode="edit"
+      />
+    );
+  }
+
+  if (orderDetailsMatch) {
+    return (
+      <OrderDetailsPage
+        orderId={Number(orderDetailsMatch[1])}
+        storeCode={storeCode}
+        mode="view"
+      />
+    );
+  }
+
   if (currentPath === "/inventory/new") {
     return (
       <InventoryProductForm
@@ -51,11 +80,11 @@ function App() {
     );
   }
 
-  if (editMatch) {
+  if (inventoryEditMatch) {
     return (
       <InventoryProductForm
         storeCode={storeCode}
-        productId={Number(editMatch[1])}
+        productId={Number(inventoryEditMatch[1])}
       />
     );
   }

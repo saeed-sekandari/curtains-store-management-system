@@ -4,8 +4,17 @@ export type SaleRow = {
   dateTime: string;
   type: string;
   description: string;
+  storeName: string;
   amount: number;
   currency: string;
+};
+
+export type ExpenseRow = {
+  category: string;
+  amount: number;
+  currency: string;
+  storeName: string;
+  dateTime: string;
 };
 
 export type DashboardData = {
@@ -21,6 +30,7 @@ export type DashboardData = {
   todayExpensesUsd: number;
   monthlySalesAfn: number;
   sales: SaleRow[];
+  todayExpenses: ExpenseRow[];
 };
 
 export type InventoryProduct = {

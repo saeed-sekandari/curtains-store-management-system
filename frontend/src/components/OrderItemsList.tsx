@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef } from "react";
 
 import type {
   InventoryProductOption,
@@ -14,9 +14,97 @@ type OrderItemsListProps = {
   onChange: (items: OrderItemRequest[]) => void;
 };
 
+function toEnglishNumbers(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (digit) =>
+      String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))
+    )
+    .replace(/[٠-٩]/g, (digit) =>
+      String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))
+    );
+}
+
+function normalizeMeterInput(value: string): string {
+  return toEnglishNumbers(value)
+    .replace(/٫/g, ".")
+    .replace(/،/g, ".");
+}
+
+function formatDate(value: string | undefined): string {
+  if (!value) {
+    return "Select a date";
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(date);
+}
+
+type DatePickerFieldProps = {
+  value: string | undefined;
+  onChange: (value: string) => void;
+};
+
+function DatePickerField({
+  value,
+  onChange,
+}: DatePickerFieldProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  function openDatePicker() {
+    const input = inputRef.current;
+
+    if (!input) {
+      return;
+    }
+
+    const picker = input as HTMLInputElement & {
+      showPicker?: () => void;
+    };
+
+    if (picker.showPicker) {
+      picker.showPicker();
+    } else {
+      input.click();
+    }
+  }
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={openDatePicker}
+        className="form-input w-full text-right"
+      >
+        {formatDate(value)}
+      </button>
+
+      <input
+        ref={inputRef}
+        type="date"
+        value={value || ""}
+        onChange={(event) =>
+          onChange(event.target.value)
+        }
+        className="pointer-events-none absolute h-0 w-0 opacity-0"
+        tabIndex={-1}
+        aria-hidden="true"
+      />
+    </div>
+  );
+}
+
 export function createEmptyOrderItem(): OrderItemRequest {
   return {
-    productType: "",
+    productType: "CURTAIN",
     roomName: "",
     width: undefined,
     height: undefined,
@@ -37,41 +125,38 @@ export default function OrderItemsList({
   isDari,
   onChange,
 }: OrderItemsListProps) {
-  const [searches, setSearches] = useState<
-    Record<string, string>
-  >({});
-
   const text = {
     item: isDari ? "آیتم سفارش" : "Order Item",
-    addItem: isDari ? "افزودن آیتم" : "Add Item",
     remove: isDari ? "حذف" : "Remove",
-    productType: isDari ? "نوع محصول" : "Product Type",
-    room: isDari ? "نام اتاق" : "Room",
-    width: isDari ? "عرض (سانتی‌متر)" : "Width (cm)",
-    height: isDari ? "ارتفاع (سانتی‌متر)" : "Height (cm)",
-    quantity: isDari ? "تعداد" : "Quantity",
-    design: isDari ? "طرح" : "Design",
     tailor: isDari ? "خیاط" : "Tailor",
     noTailor: isDari ? "بدون خیاط" : "No Tailor",
-    deadline: isDari
+    completionDate: isDari
       ? "تاریخ تکمیل"
       : "Completion Date",
-    notes: isDari ? "یادداشت" : "Notes",
-    inventory: isDari
+    details: isDari
+      ? "اندازه‌ها و جزئیات سفارش"
+      : "Measurements and Order Details",
+    detailsPlaceholder: isDari
+      ? "اندازه‌ها، نام اتاق، نوع پرده، طرح، پارچه، تعداد و تمام جزئیات سفارش را اینجا وارد کنید..."
+      : "Enter measurements, room name, curtain type, design, fabric, quantity, and all order details here...",
+    inventoryTitle: isDari
       ? "محصولات مصرفی از انبار"
-      : "Inventory Products Used",
-    search: isDari
-      ? "جستجوی محصول از انبار"
-      : "Search inventory product",
-    meters: isDari
-      ? "متر مصرفی"
-      : "Estimated Meters",
+      : "Products Used from Inventory",
     addProduct: isDari
       ? "افزودن محصول"
       : "Add Product",
-    noResults: isDari
-      ? "محصولی پیدا نشد"
-      : "No products found",
+    selectProduct: isDari
+      ? "انتخاب محصول از انبار"
+      : "Select Inventory Product",
+    meters: isDari
+      ? "متر مصرفی"
+      : "Used Meters",
+    available: isDari
+      ? "موجودی"
+      : "Available",
+    addItem: isDari
+      ? "افزودن آیتم"
+      : "Add Item",
   };
 
   function updateItem(
@@ -81,7 +166,12 @@ export default function OrderItemsList({
     onChange(
       items.map((item, index) =>
         index === itemIndex
-          ? { ...item, ...changes }
+          ? {
+              ...item,
+              ...changes,
+              productType: "CURTAIN",
+              quantity: 1,
+            }
           : item
       )
     );
@@ -95,12 +185,16 @@ export default function OrderItemsList({
   }
 
   function removeItem(itemIndex: number) {
+    if (items.length === 1) {
+      return;
+    }
+
     onChange(
       items.filter((_, index) => index !== itemIndex)
     );
   }
 
-  function addInventoryUsage(itemIndex: number) {
+  function addInventoryProduct(itemIndex: number) {
     const item = items[itemIndex];
 
     updateItem(itemIndex, {
@@ -114,7 +208,7 @@ export default function OrderItemsList({
     });
   }
 
-  function removeInventoryUsage(
+  function removeInventoryProduct(
     itemIndex: number,
     usageIndex: number
   ) {
@@ -128,162 +222,76 @@ export default function OrderItemsList({
     });
   }
 
-  function updateUsage(
+  function updateInventoryProduct(
     itemIndex: number,
     usageIndex: number,
-    productId: number,
-    estimatedMeterage: number
+    changes: {
+      productId?: number;
+      estimatedMeterage?: number;
+    }
   ) {
     const item = items[itemIndex];
 
     updateItem(itemIndex, {
       inventoryUsages:
-        item.inventoryUsages.map((usage, index) =>
-          index === usageIndex
-            ? {
-                productId,
-                estimatedMeterage,
-              }
-            : usage
+        item.inventoryUsages.map(
+          (usage, index) =>
+            index === usageIndex
+              ? {
+                  ...usage,
+                  ...changes,
+                }
+              : usage
         ),
     });
   }
 
   return (
-    <section className="space-y-6">
+    <section
+      dir={isDari ? "rtl" : "ltr"}
+      className="space-y-6"
+    >
       {items.map((item, itemIndex) => (
         <article
           key={itemIndex}
-          className="rounded-2xl border border-[#e4dacb] bg-[#fffdf9] p-5"
+          className="rounded-2xl border border-[#e4dacb] bg-[#fffdf9] p-5 sm:p-6"
         >
-          <div className="mb-5 flex items-center justify-between">
-            <h3 className="text-lg font-bold text-[#173f38]">
+          <div className="mb-6 flex items-center justify-between">
+            <h3 className="text-xl font-bold text-[#173f38]">
               {text.item} {itemIndex + 1}
             </h3>
 
-            <button
-              type="button"
-              onClick={() => removeItem(itemIndex)}
-              className="rounded-lg px-3 py-2 text-sm font-bold text-red-600 hover:bg-red-50"
-            >
-              {text.remove}
-            </button>
+            {items.length > 1 && (
+              <button
+                type="button"
+                onClick={() =>
+                  removeItem(itemIndex)
+                }
+                className="rounded-lg px-3 py-2 font-bold text-red-600 hover:bg-red-50"
+              >
+                {text.remove}
+              </button>
+            )}
           </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-5 md:grid-cols-2">
             <label>
-              <span className="mb-2 block font-semibold">
-                {text.productType}
+              <span className="mb-2 block font-bold text-[#173f38]">
+                {text.completionDate}
               </span>
 
-              <input
-                value={item.productType}
-                onChange={(event) =>
+              <DatePickerField
+                value={item.requiredCompletionDate}
+                onChange={(value) =>
                   updateItem(itemIndex, {
-                    productType: event.target.value,
+                    requiredCompletionDate: value,
                   })
                 }
-                className="form-input"
-                required
               />
             </label>
 
             <label>
-              <span className="mb-2 block font-semibold">
-                {text.room}
-              </span>
-
-              <input
-                value={item.roomName || ""}
-                onChange={(event) =>
-                  updateItem(itemIndex, {
-                    roomName: event.target.value,
-                  })
-                }
-                className="form-input"
-              />
-            </label>
-
-            <label>
-              <span className="mb-2 block font-semibold">
-                {text.width}
-              </span>
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={item.width ?? ""}
-                onChange={(event) =>
-                  updateItem(itemIndex, {
-                    width: event.target.value
-                      ? Number(event.target.value)
-                      : undefined,
-                  })
-                }
-                className="form-input"
-              />
-            </label>
-
-            <label>
-              <span className="mb-2 block font-semibold">
-                {text.height}
-              </span>
-
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={item.height ?? ""}
-                onChange={(event) =>
-                  updateItem(itemIndex, {
-                    height: event.target.value
-                      ? Number(event.target.value)
-                      : undefined,
-                  })
-                }
-                className="form-input"
-              />
-            </label>
-
-            <label>
-              <span className="mb-2 block font-semibold">
-                {text.quantity}
-              </span>
-
-              <input
-                type="number"
-                min="1"
-                step="1"
-                value={item.quantity}
-                onChange={(event) =>
-                  updateItem(itemIndex, {
-                    quantity: Number(event.target.value),
-                  })
-                }
-                className="form-input"
-                required
-              />
-            </label>
-
-            <label>
-              <span className="mb-2 block font-semibold">
-                {text.design}
-              </span>
-
-              <input
-                value={item.design || ""}
-                onChange={(event) =>
-                  updateItem(itemIndex, {
-                    design: event.target.value,
-                  })
-                }
-                className="form-input"
-              />
-            </label>
-
-            <label>
-              <span className="mb-2 block font-semibold">
+              <span className="mb-2 block font-bold text-[#173f38]">
                 {text.tailor}
               </span>
 
@@ -313,86 +321,50 @@ export default function OrderItemsList({
               </select>
             </label>
 
-            <label>
-              <span className="mb-2 block font-semibold">
-                {text.deadline}
-              </span>
-
-              <input
-                type="date"
-                value={item.requiredCompletionDate || ""}
-                onChange={(event) =>
-                  updateItem(itemIndex, {
-                    requiredCompletionDate:
-                      event.target.value,
-                  })
-                }
-                className="form-input"
-              />
-            </label>
-
             <label className="md:col-span-2">
-              <span className="mb-2 block font-semibold">
-                {text.notes}
+              <span className="mb-2 block font-bold text-[#173f38]">
+                {text.details}
               </span>
 
               <textarea
                 value={item.specialNotes || ""}
                 onChange={(event) =>
                   updateItem(itemIndex, {
-                    specialNotes: event.target.value,
+                    specialNotes:
+                      event.target.value,
                   })
                 }
-                className="form-input min-h-24"
+                className="form-input min-h-[260px] resize-y"
+                placeholder={text.detailsPlaceholder}
+                maxLength={2000}
               />
+
+              <div className="mt-2 text-left text-xs text-[#89948c]">
+                {(item.specialNotes || "").length}/2000
+              </div>
             </label>
           </div>
 
-          <div className="mt-6 border-t border-[#eadfce] pt-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h4 className="font-bold text-[#173f38]">
-                {text.inventory}
+          <section className="mt-7 rounded-2xl border border-[#e4dacb] bg-white p-5">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <h4 className="text-lg font-bold text-[#173f38]">
+                {text.inventoryTitle}
               </h4>
 
               <button
                 type="button"
                 onClick={() =>
-                  addInventoryUsage(itemIndex)
+                  addInventoryProduct(itemIndex)
                 }
-                className="rounded-lg bg-[#173f38] px-3 py-2 text-sm font-bold text-white"
+                className="rounded-xl bg-[#173f38] px-4 py-3 font-bold text-white transition hover:bg-[#0d2d29]"
               >
-                {text.addProduct}
+                + {text.addProduct}
               </button>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-4">
               {item.inventoryUsages.map(
                 (usage, usageIndex) => {
-                  const key =
-                    `${itemIndex}-${usageIndex}`;
-
-                  const search =
-                    searches[key] || "";
-
-                  const filteredProducts =
-                    inventoryProducts.filter((product) => {
-                      const value = search
-                        .trim()
-                        .toLowerCase();
-
-                      if (!value) {
-                        return true;
-                      }
-
-                      return [
-                        product.productName,
-                        product.productCode,
-                        product.color || "",
-                      ].some((field) =>
-                        field.toLowerCase().includes(value)
-                      );
-                    });
-
                   const selectedProduct =
                     inventoryProducts.find(
                       (product) =>
@@ -401,108 +373,100 @@ export default function OrderItemsList({
 
                   return (
                     <div
-                      key={key}
-                      className="rounded-xl border border-[#e4dacb] bg-white p-4"
+                      key={`${itemIndex}-${usageIndex}`}
+                      className="rounded-xl border border-[#eadfce] bg-[#fffdf9] p-4"
                     >
-                      <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
-                        <div>
-                          <input
-                            value={
-                              selectedProduct
-                                ? `${selectedProduct.productName} — ${selectedProduct.productCode}`
-                                : search
-                            }
-                            onChange={(event) => {
-                              setSearches((current) => ({
-                                ...current,
-                                [key]: event.target.value,
-                              }));
+                      <div className="grid gap-4 md:grid-cols-[1fr_190px_auto]">
+                        <label>
+                          <span className="mb-2 block text-sm font-bold text-[#52675d]">
+                            {text.selectProduct}
+                          </span>
 
-                              updateUsage(
+                          <select
+                            value={
+                              usage.productId || ""
+                            }
+                            onChange={(event) =>
+                              updateInventoryProduct(
                                 itemIndex,
                                 usageIndex,
-                                0,
-                                usage.estimatedMeterage
-                              );
-                            }}
-                            placeholder={text.search}
+                                {
+                                  productId: Number(
+                                    event.target.value
+                                  ),
+                                }
+                              )
+                            }
                             className="form-input"
-                          />
+                            required
+                          >
+                            <option value="">
+                              {text.selectProduct}
+                            </option>
 
-                          {!selectedProduct &&
-                            filteredProducts.length > 0 && (
-                              <div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-[#e4dacb] bg-white shadow">
-                                {filteredProducts.map(
-                                  (product) => (
-                                    <button
-                                      type="button"
-                                      key={product.id}
-                                      onClick={() => {
-                                        updateUsage(
-                                          itemIndex,
-                                          usageIndex,
-                                          product.id,
-                                          usage.estimatedMeterage
-                                        );
-
-                                        setSearches(
-                                          (current) => ({
-                                            ...current,
-                                            [key]: "",
-                                          })
-                                        );
-                                      }}
-                                      className="block w-full border-b border-[#f0e8dc] px-4 py-3 text-right hover:bg-[#fff8e8]"
-                                    >
-                                      <strong>
-                                        {product.productName}
-                                      </strong>
-                                      <span className="mr-2 text-sm text-[#718077]">
-                                        {product.productCode}
-                                      </span>
-                                    </button>
-                                  )
-                                )}
-                              </div>
+                            {inventoryProducts.map(
+                              (product) => (
+                                <option
+                                  key={product.id}
+                                  value={product.id}
+                                >
+                                  {product.productName} —{" "}
+                                  {product.productCode}
+                                </option>
+                              )
                             )}
-
-                          {!selectedProduct &&
-                            search &&
-                            filteredProducts.length === 0 && (
-                              <p className="mt-2 text-sm text-red-600">
-                                {text.noResults}
-                              </p>
-                            )}
+                          </select>
 
                           {selectedProduct && (
                             <p className="mt-2 text-sm text-[#718077]">
                               {selectedProduct.color || "—"} ·{" "}
-                              {selectedProduct.availableMeterage} m
+                              {text.available}:{" "}
+                              {selectedProduct.availableMeterage.toLocaleString(
+                                "en-US"
+                              )}{" "}
+                              {isDari ? "متر" : "m"}
                             </p>
                           )}
-                        </div>
+                        </label>
 
                         <label>
-                          <span className="mb-2 block text-sm font-semibold">
+                          <span className="mb-2 block text-sm font-bold text-[#52675d]">
                             {text.meters}
                           </span>
 
                           <input
-                            type="number"
-                            min="0.01"
-                            step="0.01"
+                            type="text"
+                            inputMode="decimal"
                             value={
                               usage.estimatedMeterage || ""
                             }
-                            onChange={(event) =>
-                              updateUsage(
+                            onChange={(event) => {
+                              const normalized =
+                                normalizeMeterInput(
+                                  event.target.value
+                                );
+
+                              if (
+                                !/^\d*\.?\d*$/.test(
+                                  normalized
+                                )
+                              ) {
+                                return;
+                              }
+
+                              updateInventoryProduct(
                                 itemIndex,
                                 usageIndex,
-                                usage.productId,
-                                Number(event.target.value)
-                              )
-                            }
+                                {
+                                  estimatedMeterage:
+                                    normalized === ""
+                                      ? 0
+                                      : Number(normalized),
+                                }
+                              );
+                            }}
                             className="form-input"
+                            placeholder="0"
                             required
                           />
                         </label>
@@ -510,12 +474,12 @@ export default function OrderItemsList({
                         <button
                           type="button"
                           onClick={() =>
-                            removeInventoryUsage(
+                            removeInventoryProduct(
                               itemIndex,
                               usageIndex
                             )
                           }
-                          className="self-end rounded-lg px-3 py-3 font-bold text-red-600 hover:bg-red-50"
+                          className="self-end rounded-xl px-4 py-3 font-bold text-red-600 hover:bg-red-50"
                         >
                           {text.remove}
                         </button>
@@ -525,14 +489,14 @@ export default function OrderItemsList({
                 }
               )}
             </div>
-          </div>
+          </section>
         </article>
       ))}
 
       <button
         type="button"
         onClick={addItem}
-        className="w-full rounded-xl border-2 border-dashed border-[#c89232] px-5 py-4 font-bold text-[#9a6818] hover:bg-[#fff8e8]"
+        className="w-full rounded-2xl border-2 border-dashed border-[#c89232] px-5 py-6 text-lg font-bold text-[#9a6818] transition hover:bg-[#fff8e8]"
       >
         + {text.addItem}
       </button>

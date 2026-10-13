@@ -34,6 +34,18 @@ type DirectSaleModalProps = {
   onSaved: () => void;
 };
 
+function toEnglishNumbers(value: string): string {
+  return value
+    .replace(/[۰-۹]/g, (digit) =>
+      String("۰۱۲۳۴۵۶۷۸۹".indexOf(digit))
+    )
+    .replace(/[٠-٩]/g, (digit) =>
+      String("٠١٢٣٤٥٦٧٨٩".indexOf(digit))
+    )
+    .replace(/٫/g, ".")
+    .replace(/،/g, ".");
+}
+
 export default function DirectSaleModal({
   isDari,
   labels,
@@ -60,7 +72,8 @@ export default function DirectSaleModal({
   const currency = isDari ? "افغانی" : "AFN";
 
   const totalPrice =
-    Number(quantity || 0) * Number(unitPrice || 0);
+    Number(toEnglishNumbers(quantity || "0")) *
+    Number(toEnglishNumbers(unitPrice || "0"));
 
   useEffect(() => {
     if (productSearch.trim().length === 0) {
@@ -101,6 +114,14 @@ export default function DirectSaleModal({
     event.preventDefault();
     setError("");
 
+    const numericQuantity = Number(
+      toEnglishNumbers(quantity)
+    );
+
+    const numericUnitPrice = Number(
+      toEnglishNumbers(unitPrice)
+    );
+
     if (!selectedProduct) {
       setError(
         isDari
@@ -110,7 +131,7 @@ export default function DirectSaleModal({
       return;
     }
 
-    if (Number(quantity) <= 0) {
+    if (numericQuantity <= 0) {
       setError(
         isDari
           ? "مقدار باید بیشتر از صفر باشد."
@@ -120,7 +141,7 @@ export default function DirectSaleModal({
     }
 
     if (
-      Number(quantity) >
+      numericQuantity >
       selectedProduct.availableMeterage
     ) {
       setError(
@@ -131,7 +152,7 @@ export default function DirectSaleModal({
       return;
     }
 
-    if (Number(unitPrice) <= 0) {
+    if (numericUnitPrice <= 0) {
       setError(
         isDari
           ? "قیمت هر متر باید بیشتر از صفر باشد."
@@ -146,8 +167,8 @@ export default function DirectSaleModal({
       await createDirectSale({
         storeCode,
         productId: selectedProduct.id,
-        quantity: Number(quantity),
-        unitPrice: Number(unitPrice),
+        quantity: numericQuantity,
+        unitPrice: numericUnitPrice,
         notes: notes.trim(),
       });
 
@@ -172,6 +193,7 @@ export default function DirectSaleModal({
           </h2>
 
           <button
+            type="button"
             onClick={onClose}
             className="text-3xl text-[#766c60] hover:text-[#173f38]"
           >
@@ -297,14 +319,18 @@ export default function DirectSaleModal({
           <FormField label={labels.quantityMeters}>
             <input
               value={quantity}
-              onChange={(event) =>
-                setQuantity(event.target.value)
-              }
+              onChange={(event) => {
+                const value = toEnglishNumbers(
+                  event.target.value
+                );
+
+                if (/^\d*\.?\d*$/.test(value)) {
+                  setQuantity(value);
+                }
+              }}
               className="form-input"
-              type="number"
-              min="0.01"
-              step="0.01"
-              max={selectedProduct?.availableMeterage}
+              type="text"
+              inputMode="decimal"
               required
             />
           </FormField>
@@ -312,13 +338,18 @@ export default function DirectSaleModal({
           <FormField label={labels.pricePerMeter}>
             <input
               value={unitPrice}
-              onChange={(event) =>
-                setUnitPrice(event.target.value)
-              }
+              onChange={(event) => {
+                const value = toEnglishNumbers(
+                  event.target.value
+                );
+
+                if (/^\d*\.?\d*$/.test(value)) {
+                  setUnitPrice(value);
+                }
+              }}
               className="form-input"
-              type="number"
-              min="0.01"
-              step="0.01"
+              type="text"
+              inputMode="decimal"
               required
             />
           </FormField>

@@ -96,3 +96,28 @@ export async function createOrder(
     body: JSON.stringify(request),
   });
 }
+
+export type UpdateOrderRequest = {
+  storeCode: string;
+  completionDate: string;
+  tailorId?: number;
+  details: string;
+};
+
+export async function updateOrder(
+  orderId: number,
+  request: UpdateOrderRequest
+): Promise<{
+  success: boolean;
+  orderId: number;
+  message: string;
+}> {
+  return requestJson<{
+    success: boolean;
+    orderId: number;
+    message: string;
+  }>(`${API_URL}/${orderId}`, {
+    method: "PUT",
+    body: JSON.stringify(request),
+  });
+}

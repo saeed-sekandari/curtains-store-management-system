@@ -8,6 +8,7 @@ type SalesTableLabels = {
   saleType: string;
   amount: string;
   today: string;
+  store: string;
 };
 
 type SalesTableProps = {
@@ -67,7 +68,7 @@ export default function SalesTable({
         </p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[650px] border-collapse text-right">
+          <table className="w-full min-w-[850px] border-collapse text-right">
             <thead>
               <tr className="border-b border-[#eee6db] text-sm text-[#8b8175]">
                 <th className="px-4 py-4 font-medium">
@@ -83,6 +84,10 @@ export default function SalesTable({
                 </th>
 
                 <th className="px-4 py-4 font-medium">
+                  {labels.store}
+                </th>
+
+                <th className="px-4 py-4 font-medium">
                   {labels.amount}
                 </th>
               </tr>
@@ -91,7 +96,7 @@ export default function SalesTable({
             <tbody>
               {sales.map((sale) => (
                 <tr
-                  key={`${sale.dateTime}-${sale.description}`}
+                  key={`${sale.dateTime}-${sale.description}-${sale.storeName}`}
                   className="border-b border-[#f2ece3] last:border-0"
                 >
                   <td className="px-4 py-5 text-sm text-[#766c60]">
@@ -106,6 +111,10 @@ export default function SalesTable({
 
                   <td className="px-4 py-5 text-sm text-[#4f5f59]">
                     {sale.description}
+                  </td>
+
+                  <td className="px-4 py-5 text-sm font-semibold text-[#4f5f59]">
+                    {sale.storeName}
                   </td>
 
                   <td className="px-4 py-5 font-semibold text-[#173f38]">

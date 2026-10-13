@@ -32,11 +32,14 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -102,6 +105,53 @@ public class OrderApiController {
         response.put("storeCode", selectedStore.getCode());
         response.put("storeName", selectedStore.getName());
         response.put("orders", orderResponses);
+
+        return response;
+    }
+
+    @Transactional
+    @GetMapping("/form-data")
+    public Map<String, Object> getFormData(
+            @RequestParam String store,
+            Principal principal) {
+
+        Store selectedStore = getStore(store);
+        checkStoreAccess(principal, selectedStore);
+
+        List<Map<String, Object>> customers =
+                customerRepository.findByStoreId(
+                                selectedStore.getId()
+                        )
+                        .stream()
+                        .map(this::toCustomerResponse)
+                        .toList();
+
+        List<Map<String, Object>> products =
+                inventoryProductRepository
+                        .findByStoreIdAndActiveTrueOrderByProductNameAsc(
+                                selectedStore.getId()
+                        )
+                        .stream()
+                        .map(this::toInventoryResponse)
+                        .toList();
+
+        List<Map<String, Object>> tailors =
+                userRepository.findByRoleAndAssignedStoreId(
+                                Role.TAILOR,
+                                selectedStore.getId()
+                        )
+                        .stream()
+                        .map(this::toUserResponse)
+                        .toList();
+
+        Map<String, Object> response =
+                new LinkedHashMap<>();
+
+        response.put("storeCode", selectedStore.getCode());
+        response.put("storeName", selectedStore.getName());
+        response.put("customers", customers);
+        response.put("inventoryProducts", products);
+        response.put("tailors", tailors);
 
         return response;
     }
@@ -184,53 +234,6 @@ public class OrderApiController {
         );
     }
 
-    @Transactional
-    @GetMapping("/form-data")
-    public Map<String, Object> getFormData(
-            @RequestParam String store,
-            Principal principal) {
-
-        Store selectedStore = getStore(store);
-        checkStoreAccess(principal, selectedStore);
-
-        List<Map<String, Object>> customers =
-                customerRepository.findByStoreId(
-                                selectedStore.getId()
-                        )
-                        .stream()
-                        .map(this::toCustomerResponse)
-                        .toList();
-
-        List<Map<String, Object>> products =
-                inventoryProductRepository
-                        .findByStoreIdAndActiveTrueOrderByProductNameAsc(
-                                selectedStore.getId()
-                        )
-                        .stream()
-                        .map(this::toInventoryResponse)
-                        .toList();
-
-        List<Map<String, Object>> tailors =
-                userRepository.findByRoleAndAssignedStoreId(
-                                Role.TAILOR,
-                                selectedStore.getId()
-                        )
-                        .stream()
-                        .map(this::toUserResponse)
-                        .toList();
-
-        Map<String, Object> response =
-                new LinkedHashMap<>();
-
-        response.put("storeCode", selectedStore.getCode());
-        response.put("storeName", selectedStore.getName());
-        response.put("customers", customers);
-        response.put("inventoryProducts", products);
-        response.put("tailors", tailors);
-
-        return response;
-    }
-
     private Map<String, Object> toOrderResponse(
             Order order) {
 
@@ -256,16 +259,20 @@ public class OrderApiController {
 
         response.put("id", order.getId());
         response.put("orderNumber", order.getOrderNumber());
+
         response.put(
                 "customerName",
                 order.getCustomer() == null
                         ? ""
                         : order.getCustomer().getFullName()
         );
+
         response.put("totalAmount", total);
         response.put("depositAmount", order.getDepositAmount());
         response.put("paidAmount", paid);
         response.put("remainingAmount", remaining);
+        response.put("completionDate",
+                findCompletionDate(order.getId()));
         response.put("status", order.getStatus());
         response.put("createdDate", order.getCreatedDate());
         response.put(
@@ -274,6 +281,16 @@ public class OrderApiController {
         );
 
         return response;
+    }
+
+    private LocalDate findCompletionDate(Long orderId) {
+        return orderItemRepository
+                .findByOrderId(orderId)
+                .stream()
+                .map(OrderItem::getRequiredCompletionDate)
+                .filter(Objects::nonNull)
+                .min(Comparator.naturalOrder())
+                .orElse(null);
     }
 
     private Map<String, Object> toItemResponse(
