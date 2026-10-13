@@ -106,6 +106,15 @@ public class SecurityConfig {
                         ).hasRole("MANAGER")
 
                         .requestMatchers(
+                                "/api/inventory/**"
+                        ).hasAnyRole(
+                                "MANAGER",
+                                "EMPLOYEE",
+                                "ACCOUNTANT",
+                                "TAILOR"
+                        )
+
+                        .requestMatchers(
                                 "/dashboard",
                                 "/dashboard/**",
                                 "/users/**"

@@ -52,7 +52,6 @@ a {
   text-decoration: none;
 }
 
-/* Form fields need strong borders and readable text. */
 .form-input {
   display: block;
   width: 100%;
@@ -85,6 +84,13 @@ a {
   opacity: 1;
 }
 
+.form-input:disabled {
+  cursor: not-allowed;
+  background: #f3eee6 !important;
+  color: #817568 !important;
+  opacity: 0.75 !important;
+}
+
 select.form-input {
   appearance: auto;
   color: #173f38 !important;
@@ -96,14 +102,24 @@ select.form-input option {
   color: #173f38;
 }
 
-input[type="number"].form-input {
+input[type="text"].form-input,
+input[type="number"].form-input,
+input[type="date"].form-input,
+input[type="datetime-local"].form-input,
+input[type="search"].form-input {
   color: #173f38 !important;
   background: #ffffff !important;
 }
 
-input[type="search"].form-input {
-  color: #173f38 !important;
-  background: #ffffff !important;
+input[type="number"].form-input {
+  direction: ltr;
+  text-align: left;
+}
+
+input[type="date"].form-input,
+input[type="datetime-local"].form-input {
+  direction: ltr;
+  text-align: left;
 }
 
 textarea.form-input {

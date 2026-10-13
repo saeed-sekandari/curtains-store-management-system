@@ -12,23 +12,43 @@ import java.util.Optional;
 public interface InventoryProductRepository
         extends JpaRepository<InventoryProduct, Long> {
 
-    @EntityGraph(attributePaths = {"store", "addedBy", "lastEditedBy"})
-    List<InventoryProduct> findByStoreIdAndActiveTrueOrderByProductNameAsc(
-            Long storeId
-    );
+    @EntityGraph(attributePaths = {
+            "store",
+            "addedBy",
+            "lastEditedBy"
+    })
+    List<InventoryProduct>
+    findByStoreIdAndActiveTrueOrderByProductNameAsc(Long storeId);
 
-    @EntityGraph(attributePaths = {"store", "addedBy", "lastEditedBy"})
-    List<InventoryProduct> findByStoreIdOrderByProductNameAsc(
-            Long storeId
-    );
+    @EntityGraph(attributePaths = {
+            "store",
+            "addedBy",
+            "lastEditedBy"
+    })
+    List<InventoryProduct>
+    findByStoreIdOrderByProductNameAsc(Long storeId);
 
-    @EntityGraph(attributePaths = {"store", "addedBy", "lastEditedBy"})
-    Optional<InventoryProduct> findByIdAndStoreId(
-            Long productId,
-            Long storeId
-    );
+    @EntityGraph(attributePaths = {
+            "store",
+            "addedBy",
+            "lastEditedBy"
+    })
+    List<InventoryProduct>
+    findByActiveTrueOrderByProductNameAsc();
 
-    @EntityGraph(attributePaths = {"store", "addedBy", "lastEditedBy"})
+    @EntityGraph(attributePaths = {
+            "store",
+            "addedBy",
+            "lastEditedBy"
+    })
+    Optional<InventoryProduct>
+    findByIdAndStoreId(Long productId, Long storeId);
+
+    @EntityGraph(attributePaths = {
+            "store",
+            "addedBy",
+            "lastEditedBy"
+    })
     @Query("""
             SELECT p
             FROM InventoryProduct p
@@ -52,4 +72,9 @@ public interface InventoryProductRepository
     );
 
     boolean existsByProductCodeIgnoreCase(String productCode);
+
+    boolean existsByProductCodeIgnoreCaseAndIdNot(
+            String productCode,
+            Long productId
+    );
 }

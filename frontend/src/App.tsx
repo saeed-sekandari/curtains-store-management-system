@@ -2,6 +2,7 @@ import ManagerDashboard from "./pages/ManagerDashboard";
 import ExpensePage from "./pages/ExpensePage";
 import InventoryPage from "./pages/InventoryPage";
 import InventoryProductForm from "./pages/InventoryProductForm";
+import OrdersPage from "./pages/OrdersPage";
 
 function App() {
   const currentPath = window.location.pathname;
@@ -26,6 +27,18 @@ function App() {
       <ExpensePage
         storeCode={storeCode}
         managerName="مدیر سیستم"
+      />
+    );
+  }
+
+  if (
+    currentPath === "/orders" ||
+    currentPath === "/orders/" ||
+    currentPath === "/orders/new"
+  ) {
+    return (
+      <OrdersPage
+        storeCode={storeCode}
       />
     );
   }

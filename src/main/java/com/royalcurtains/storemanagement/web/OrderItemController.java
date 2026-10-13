@@ -29,8 +29,10 @@ import java.security.Principal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 
 @Controller
 public class OrderItemController {
@@ -78,7 +80,10 @@ public class OrderItemController {
                 "items",
                 orderItemRepository.findByOrderId(orderId)
         );
-        model.addAttribute("currentRole", currentUser.getRole().name());
+        model.addAttribute(
+                "currentRole",
+                currentUser.getRole().name()
+        );
         model.addAttribute(
                 "tailors",
                 findTailorsForStore(order.getStore())
@@ -96,6 +101,7 @@ public class OrderItemController {
 
         Order order = findOrder(orderId);
         checkStoreAccess(order, principal);
+        rejectCancelledOrder(order);
 
         model.addAttribute("order", order);
         model.addAttribute(
@@ -128,30 +134,44 @@ public class OrderItemController {
             @RequestParam(required = false) String fabricName,
             @RequestParam(required = false) String color,
             @RequestParam(required = false) String fabricNotes,
-            @RequestParam(required = false) String requiredCompletionDate,
-            @RequestParam(required = false) List<Long> inventoryProductIds,
-            @RequestParam(required = false) List<BigDecimal> estimatedMeterages,
+            @RequestParam(required = false)
+            String requiredCompletionDate,
+            @RequestParam(required = false)
+            List<Long> inventoryProductIds,
+            @RequestParam(required = false)
+            List<BigDecimal> estimatedMeterages,
             Principal principal) {
 
         Order order = findOrder(orderId);
         checkStoreAccess(order, principal);
+        rejectCancelledOrder(order);
 
         User currentUser = findUser(principal);
 
-        OrderItem item = new OrderItem();
+        if (productType == null || productType.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Product type is required"
+            );
+        }
 
+        if (quantity == null || quantity <= 0) {
+            throw new IllegalArgumentException(
+                    "Quantity must be greater than zero"
+            );
+        }
+
+        OrderItem item = new OrderItem();
         item.setOrder(order);
-        item.setProductType(productType);
-        item.setRoomName(roomName);
+        item.setProductType(productType.trim());
+        item.setRoomName(trim(roomName));
         item.setWidth(width);
         item.setHeight(height);
         item.setQuantity(quantity);
-        item.setDesign(design);
-        item.setSpecialNotes(specialNotes);
+        item.setDesign(trim(design));
+        item.setSpecialNotes(trim(specialNotes));
 
         if (requiredCompletionDate != null
                 && !requiredCompletionDate.isBlank()) {
-
             item.setRequiredCompletionDate(
                     LocalDate.parse(requiredCompletionDate)
             );
@@ -170,7 +190,8 @@ public class OrderItemController {
                 estimatedMeterages
         );
 
-        OrderItem savedItem = orderItemRepository.save(item);
+        OrderItem savedItem =
+                orderItemRepository.save(item);
 
         addInventoryUsages(
                 savedItem,
@@ -181,19 +202,23 @@ public class OrderItemController {
                 currentUser
         );
 
-        if (fabricName != null && !fabricName.isBlank()) {
+        if (fabricName != null
+                && !fabricName.isBlank()) {
 
-            OrderItemFabric fabric = new OrderItemFabric();
+            OrderItemFabric fabric =
+                    new OrderItemFabric();
 
             fabric.setOrderItem(savedItem);
-            fabric.setFabricName(fabricName);
-            fabric.setColor(color);
-            fabric.setNotes(fabricNotes);
+            fabric.setFabricName(fabricName.trim());
+            fabric.setColor(trim(color));
+            fabric.setNotes(trim(fabricNotes));
 
             fabricRepository.save(fabric);
         }
 
-        return "redirect:/orders/" + orderId + "/items";
+        return "redirect:/orders/"
+                + orderId
+                + "/items";
     }
 
     @Transactional
@@ -206,6 +231,7 @@ public class OrderItemController {
 
         Order order = findOrder(orderId);
         checkStoreAccess(order, principal);
+        rejectCancelledOrder(order);
 
         OrderItem item = findItem(itemId);
 
@@ -224,7 +250,9 @@ public class OrderItemController {
     }
 
     @Transactional
-    @PostMapping("/orders/{orderId}/items/{itemId}/assignment")
+    @PostMapping(
+            "/orders/{orderId}/items/{itemId}/assignment"
+    )
     public String updateAssignment(
             @PathVariable Long orderId,
             @PathVariable Long itemId,
@@ -233,6 +261,7 @@ public class OrderItemController {
 
         Order order = findOrder(orderId);
         checkStoreAccess(order, principal);
+        rejectCancelledOrder(order);
 
         OrderItem item = findItem(itemId);
         User currentUser = findUser(principal);
@@ -243,14 +272,21 @@ public class OrderItemController {
 
         assignTailor(item, tailorId, order);
 
-        OrderItem savedItem = orderItemRepository.save(item);
+        OrderItem savedItem =
+                orderItemRepository.save(item);
 
         if (tailorId != null) {
             validateExistingUsageAvailability(savedItem);
-            deductExistingUsages(savedItem, order, currentUser);
+            deductExistingUsages(
+                    savedItem,
+                    order,
+                    currentUser
+            );
         }
 
-        return "redirect:/orders/" + orderId + "/items";
+        return "redirect:/orders/"
+                + orderId
+                + "/items";
     }
 
     private void addInventoryUsages(
@@ -265,16 +301,18 @@ public class OrderItemController {
             return;
         }
 
-        for (int index = 0; index < productIds.size(); index++) {
-
-            Long productId = productIds.get(index);
-            BigDecimal meterage = meterages.get(index);
+        for (int index = 0;
+             index < productIds.size();
+             index++) {
 
             InventoryProduct product =
                     findInventoryProduct(
-                            productId,
+                            productIds.get(index),
                             order.getStore()
                     );
+
+            BigDecimal meterage =
+                    meterages.get(index);
 
             OrderItemInventoryUsage usage =
                     new OrderItemInventoryUsage();
@@ -292,7 +330,9 @@ public class OrderItemController {
                 );
 
                 usage.setInventoryDeducted(true);
-                usage.setInventoryDeductedAt(LocalDateTime.now());
+                usage.setInventoryDeductedAt(
+                        LocalDateTime.now()
+                );
                 usage.setDeductedBy(currentUser);
             }
 
@@ -307,28 +347,24 @@ public class OrderItemController {
             Order order,
             User currentUser) {
 
-        for (OrderItemInventoryUsage usage
-                : item.getInventoryUsages()) {
+        for (OrderItemInventoryUsage usage :
+                item.getInventoryUsages()) {
 
             if (usage.isInventoryDeducted()) {
                 continue;
             }
 
-            InventoryProduct product =
-                    usage.getInventoryProduct();
-
-            BigDecimal meterage =
-                    usage.getEstimatedMeterage();
-
             deductInventory(
-                    product,
-                    meterage,
+                    usage.getInventoryProduct(),
+                    usage.getEstimatedMeterage(),
                     order,
                     currentUser
             );
 
             usage.setInventoryDeducted(true);
-            usage.setInventoryDeductedAt(LocalDateTime.now());
+            usage.setInventoryDeductedAt(
+                    LocalDateTime.now()
+            );
             usage.setDeductedBy(currentUser);
         }
 
@@ -341,11 +377,10 @@ public class OrderItemController {
             Order order,
             User currentUser) {
 
-        BigDecimal available = product.getMeterage();
-
-        if (available == null) {
-            available = BigDecimal.ZERO;
-        }
+        BigDecimal available =
+                product.getMeterage() == null
+                        ? BigDecimal.ZERO
+                        : product.getMeterage();
 
         if (meterage.compareTo(available) > 0) {
             throw new IllegalArgumentException(
@@ -357,18 +392,25 @@ public class OrderItemController {
             );
         }
 
-        product.setMeterage(available.subtract(meterage));
+        product.setMeterage(
+                available.subtract(meterage)
+        );
         product.setLastEditedBy(currentUser);
-        product.setLastEditedAt(LocalDateTime.now());
+        product.setLastEditedAt(
+                LocalDateTime.now()
+        );
 
         inventoryProductRepository.save(product);
 
-        InventoryMovement movement = new InventoryMovement();
+        InventoryMovement movement =
+                new InventoryMovement();
+
         movement.setProduct(product);
         movement.setMovementType("REMOVE");
         movement.setQuantity(meterage);
         movement.setReason(
-                "Used for order " + order.getOrderNumber()
+                "Used for order "
+                        + order.getOrderNumber()
         );
         movement.setRecordedBy(currentUser);
 
@@ -384,7 +426,9 @@ public class OrderItemController {
             return;
         }
 
-        for (int index = 0; index < productIds.size(); index++) {
+        for (int index = 0;
+             index < productIds.size();
+             index++) {
 
             InventoryProduct product =
                     findInventoryProduct(
@@ -392,13 +436,14 @@ public class OrderItemController {
                             order.getStore()
                     );
 
-            BigDecimal available = product.getMeterage();
+            BigDecimal available =
+                    product.getMeterage() == null
+                            ? BigDecimal.ZERO
+                            : product.getMeterage();
 
-            if (available == null) {
-                available = BigDecimal.ZERO;
-            }
+            if (meterages.get(index)
+                    .compareTo(available) > 0) {
 
-            if (meterages.get(index).compareTo(available) > 0) {
                 throw new IllegalArgumentException(
                         "Not enough inventory for "
                                 + product.getProductName()
@@ -413,8 +458,8 @@ public class OrderItemController {
     private void validateExistingUsageAvailability(
             OrderItem item) {
 
-        for (OrderItemInventoryUsage usage
-                : item.getInventoryUsages()) {
+        for (OrderItemInventoryUsage usage :
+                item.getInventoryUsages()) {
 
             if (usage.isInventoryDeducted()) {
                 continue;
@@ -423,11 +468,10 @@ public class OrderItemController {
             InventoryProduct product =
                     usage.getInventoryProduct();
 
-            BigDecimal available = product.getMeterage();
-
-            if (available == null) {
-                available = BigDecimal.ZERO;
-            }
+            BigDecimal available =
+                    product.getMeterage() == null
+                            ? BigDecimal.ZERO
+                            : product.getMeterage();
 
             if (usage.getEstimatedMeterage()
                     .compareTo(available) > 0) {
@@ -447,32 +491,54 @@ public class OrderItemController {
             List<Long> productIds,
             List<BigDecimal> meterages) {
 
-        List<Long> safeProductIds = productIds == null
-                ? Collections.emptyList()
-                : productIds;
+        List<Long> safeProductIds =
+                productIds == null
+                        ? Collections.emptyList()
+                        : productIds;
 
-        List<BigDecimal> safeMeterages = meterages == null
-                ? Collections.emptyList()
-                : meterages;
+        List<BigDecimal> safeMeterages =
+                meterages == null
+                        ? Collections.emptyList()
+                        : meterages;
 
-        if (safeProductIds.size() != safeMeterages.size()) {
+        if (safeProductIds.size()
+                != safeMeterages.size()) {
+
             throw new IllegalArgumentException(
                     "Each selected product must have an estimated meterage"
             );
         }
 
-        for (int index = 0; index < safeMeterages.size(); index++) {
+        Set<Long> uniqueProductIds =
+                new HashSet<>();
 
-            BigDecimal meterage = safeMeterages.get(index);
+        for (int index = 0;
+             index < safeProductIds.size();
+             index++) {
 
-            if (safeProductIds.get(index) == null) {
+            Long productId =
+                    safeProductIds.get(index);
+
+            BigDecimal meterage =
+                    safeMeterages.get(index);
+
+            if (productId == null) {
                 throw new IllegalArgumentException(
                         "Please select an inventory product"
                 );
             }
 
+            if (!uniqueProductIds.add(productId)) {
+                throw new IllegalArgumentException(
+                        "The same inventory product cannot be added twice"
+                );
+            }
+
             if (meterage == null
-                    || meterage.compareTo(BigDecimal.ZERO) <= 0) {
+                    || meterage.compareTo(
+                    BigDecimal.ZERO
+            ) <= 0) {
+
                 throw new IllegalArgumentException(
                         "Estimated meterage must be greater than zero"
                 );
@@ -484,13 +550,25 @@ public class OrderItemController {
             Long productId,
             Store store) {
 
-        return inventoryProductRepository
-                .findByIdAndStoreId(productId, store.getId())
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Selected inventory product was not found"
+        InventoryProduct product =
+                inventoryProductRepository
+                        .findByIdAndStoreId(
+                                productId,
+                                store.getId()
                         )
-                );
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Selected inventory product was not found"
+                                )
+                        );
+
+        if (!product.isActive()) {
+            throw new IllegalArgumentException(
+                    "The selected inventory product is inactive"
+            );
+        }
+
+        return product;
     }
 
     private void assignTailor(
@@ -504,12 +582,13 @@ public class OrderItemController {
             return;
         }
 
-        User tailor = userRepository.findById(tailorId)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Tailor not found"
-                        )
-                );
+        User tailor =
+                userRepository.findById(tailorId)
+                        .orElseThrow(() ->
+                                new IllegalArgumentException(
+                                        "Tailor not found"
+                                )
+                        );
 
         if (tailor.getRole() != Role.TAILOR) {
             throw new IllegalArgumentException(
@@ -520,8 +599,8 @@ public class OrderItemController {
         if (tailor.getAssignedStore() == null
                 || !Objects.equals(
                 tailor.getAssignedStore().getId(),
-                order.getStore().getId())) {
-
+                order.getStore().getId()
+        )) {
             throw new IllegalArgumentException(
                     "The tailor must belong to the same store"
             );
@@ -534,14 +613,27 @@ public class OrderItemController {
         }
 
         if (item.getWorkStatus() == null
-                || "NOT_STARTED".equals(item.getWorkStatus())) {
-
+                || "NOT_STARTED".equals(
+                item.getWorkStatus()
+        )) {
             item.setWorkStatus("RECEIVED");
         }
     }
 
+    private void rejectCancelledOrder(Order order) {
+        if ("CANCELLED".equalsIgnoreCase(
+                order.getStatus()
+        )) {
+            throw new IllegalStateException(
+                    "Cancelled orders cannot be changed"
+            );
+        }
+    }
+
     private void rejectCompletedItem(OrderItem item) {
-        if ("COMPLETED".equals(item.getWorkStatus())) {
+        if ("COMPLETED".equals(
+                item.getWorkStatus()
+        )) {
             throw new IllegalStateException(
                     "Completed work cannot be reassigned"
             );
@@ -576,16 +668,7 @@ public class OrderItemController {
         return orderItemRepository.findById(itemId)
                 .orElseThrow(() ->
                         new IllegalArgumentException(
-                                "Product or measurement not found"
-                        )
-                );
-    }
-
-    private User findUser(Principal principal) {
-        return userRepository.findByUsername(principal.getName())
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "User not found"
+                                "Order item not found"
                         )
                 );
     }
@@ -597,12 +680,22 @@ public class OrderItemController {
         if (item.getOrder() == null
                 || !Objects.equals(
                 item.getOrder().getId(),
-                order.getId())) {
-
+                order.getId()
+        )) {
             throw new IllegalArgumentException(
-                    "This product does not belong to the selected order"
+                    "This item does not belong to the selected order"
             );
         }
+    }
+
+    private User findUser(Principal principal) {
+        return userRepository
+                .findByUsername(principal.getName())
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "User not found"
+                        )
+                );
     }
 
     private void checkStoreAccess(
@@ -613,5 +706,11 @@ public class OrderItemController {
                 principal,
                 order.getStore().getCode()
         );
+    }
+
+    private String trim(String value) {
+        return value == null || value.isBlank()
+                ? null
+                : value.trim();
     }
 }

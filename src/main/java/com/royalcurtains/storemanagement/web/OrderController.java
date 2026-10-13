@@ -30,7 +30,9 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 
 @Controller
 public class OrderController {
@@ -61,7 +63,6 @@ public class OrderController {
         this.storeAccessService = storeAccessService;
     }
 
-    // Shows orders for the selected store.
     @GetMapping("/orders")
     public String orders(
             @RequestParam String store,
@@ -69,54 +70,62 @@ public class OrderController {
             Principal principal) {
 
         Store selectedStore = findStore(store);
+        checkStoreAccess(principal, selectedStore);
 
-        storeAccessService.checkStoreAccess(
-                principal,
-                selectedStore.getCode());
-
-        User currentUser = userRepository
-                .findByUsername(principal.getName())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("User not found"));
+        User currentUser = findUser(principal);
 
         List<Order> orders =
-                orderRepository.findByStoreId(selectedStore.getId());
+                orderRepository.findByStoreId(
+                        selectedStore.getId()
+                );
 
         Map<Long, BigDecimal> paidAmounts = new HashMap<>();
         Map<Long, BigDecimal> remainingAmounts = new HashMap<>();
         Map<Long, String> workStatuses = new HashMap<>();
 
         for (Order order : orders) {
-
             BigDecimal paid =
-                    paymentRepository
-                            .sumActiveAfnPaymentsByOrderId(order.getId());
+                    paymentRepository.sumActiveAfnPaymentsByOrderId(
+                            order.getId()
+                    );
+
+            if (paid == null) {
+                paid = BigDecimal.ZERO;
+            }
+
+            BigDecimal total =
+                    order.getTotalAmount() == null
+                            ? BigDecimal.ZERO
+                            : order.getTotalAmount();
 
             BigDecimal remaining =
-                    order.getTotalAmount()
-                            .subtract(paid)
-                            .max(BigDecimal.ZERO);
+                    total.subtract(paid).max(BigDecimal.ZERO);
 
             paidAmounts.put(order.getId(), paid);
             remainingAmounts.put(order.getId(), remaining);
-
             workStatuses.put(
                     order.getId(),
-                    calculateWorkStatus(order.getId()));
+                    calculateWorkStatus(order.getId())
+            );
         }
 
         model.addAttribute("store", selectedStore);
         model.addAttribute("selectedStore", selectedStore);
-        model.addAttribute("currentRole", currentUser.getRole().name());
+        model.addAttribute(
+                "currentRole",
+                currentUser.getRole().name()
+        );
         model.addAttribute("orders", orders);
         model.addAttribute("paidAmounts", paidAmounts);
-        model.addAttribute("remainingAmounts", remainingAmounts);
+        model.addAttribute(
+                "remainingAmounts",
+                remainingAmounts
+        );
         model.addAttribute("workStatuses", workStatuses);
 
         return "orders";
     }
 
-    // Opens the combined customer and order form.
     @GetMapping("/orders/new")
     public String newOrder(
             @RequestParam String store,
@@ -124,22 +133,21 @@ public class OrderController {
             Principal principal) {
 
         Store selectedStore = findStore(store);
-
-        storeAccessService.checkStoreAccess(
-                principal,
-                selectedStore.getCode());
+        checkStoreAccess(principal, selectedStore);
 
         model.addAttribute("store", selectedStore);
         model.addAttribute("selectedStore", selectedStore);
         model.addAttribute(
                 "customers",
-                customerRepository.findByStoreId(selectedStore.getId()));
+                customerRepository.findByStoreId(
+                        selectedStore.getId()
+                )
+        );
         model.addAttribute("order", new Order());
 
         return "order-form";
     }
 
-    // Creates a customer, order, and optional first payment together.
     @Transactional
     @PostMapping("/orders")
     public String saveOrder(
@@ -159,10 +167,9 @@ public class OrderController {
             Principal principal) {
 
         Store selectedStore = findStore(storeCode);
+        checkStoreAccess(principal, selectedStore);
 
-        storeAccessService.checkStoreAccess(
-                principal,
-                selectedStore.getCode());
+        validateOrderTotal(order);
 
         Customer customer;
 
@@ -170,53 +177,54 @@ public class OrderController {
             customer = customerRepository.findById(customerId)
                     .orElseThrow(() ->
                             new IllegalArgumentException(
-                                    "Customer not found"));
+                                    "Customer not found"
+                            )
+                    );
+
+            ensureCustomerBelongsToStore(
+                    customer,
+                    selectedStore
+            );
         } else {
-            if (newCustomerName == null
-                    || newCustomerName.isBlank()) {
-
-                throw new IllegalArgumentException(
-                        "New customer name is required");
-            }
-
-            customer = new Customer();
-            customer.setFullName(newCustomerName);
-            customer.setPhone(newCustomerPhone);
-            customer.setAddress(newCustomerAddress);
-            customer.setStore(selectedStore);
-
-            customer = customerRepository.save(customer);
+            customer = createCustomer(
+                    newCustomerName,
+                    newCustomerPhone,
+                    newCustomerAddress,
+                    selectedStore
+            );
         }
+
+        BigDecimal paymentAmount =
+                initialPaymentAmount == null
+                        ? BigDecimal.ZERO
+                        : initialPaymentAmount;
+
+        validateInitialPayment(
+                paymentAmount,
+                order.getTotalAmount()
+        );
+
+        User recordedBy = findUser(principal);
 
         order.setStore(selectedStore);
         order.setCustomer(customer);
         order.setStatus("ACTIVE");
-
-        if (initialPaymentAmount == null) {
-            order.setDepositAmount(BigDecimal.ZERO);
-        } else {
-            order.setDepositAmount(initialPaymentAmount);
-        }
+        order.setDepositAmount(paymentAmount);
 
         Order savedOrder = orderRepository.save(order);
 
-        if (initialPaymentAmount != null
-                && initialPaymentAmount.compareTo(BigDecimal.ZERO) > 0) {
-
-            User recordedBy = userRepository
-                    .findByUsername(principal.getName())
-                    .orElseThrow(() ->
-                            new IllegalArgumentException(
-                                    "User not found"));
-
+        if (paymentAmount.compareTo(BigDecimal.ZERO) > 0) {
             Payment payment = new Payment();
+
             payment.setOrder(savedOrder);
             payment.setStore(selectedStore);
             payment.setRecordedBy(recordedBy);
-            payment.setAmount(initialPaymentAmount);
+            payment.setAmount(paymentAmount);
             payment.setCurrency("AFN");
             payment.setPaymentType("DEPOSIT");
-            payment.setPaymentMethod(initialPaymentMethod);
+            payment.setPaymentMethod(
+                    normalizePaymentMethod(initialPaymentMethod)
+            );
             payment.setPaymentDate(LocalDate.now());
             payment.setRecordedAt(LocalDateTime.now());
             payment.setStatus("ACTIVE");
@@ -229,7 +237,6 @@ public class OrderController {
                 + selectedStore.getCode();
     }
 
-    // Only the manager can cancel an order.
     @Transactional
     @PostMapping("/orders/{orderId}/cancel")
     public String cancelOrder(
@@ -238,26 +245,33 @@ public class OrderController {
             Principal principal) {
 
         Order order = findOrder(orderId);
+        User currentUser = findUser(principal);
 
-        User currentUser = userRepository
-                .findByUsername(principal.getName())
-                .orElseThrow(() ->
-                        new IllegalArgumentException("User not found"));
-
-        storeAccessService.checkStoreAccess(
-                principal,
-                order.getStore().getCode());
+        checkStoreAccess(principal, order.getStore());
 
         if (currentUser.getRole() != Role.MANAGER) {
             throw new AccessDeniedException(
-                    "Only the manager can cancel orders");
+                    "Only the manager can cancel orders"
+            );
         }
 
-        if (!"CANCELLED".equals(order.getStatus())) {
+        if (cancellationReason == null
+                || cancellationReason.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Cancellation reason is required"
+            );
+        }
+
+        if (!"CANCELLED".equalsIgnoreCase(
+                order.getStatus()
+        )) {
             order.setStatus("CANCELLED");
             order.setCancelledBy(currentUser);
             order.setCancelledAt(LocalDateTime.now());
-            order.setCancellationReason(cancellationReason);
+            order.setCancellationReason(
+                    cancellationReason.trim()
+            );
 
             orderRepository.save(order);
         }
@@ -266,9 +280,88 @@ public class OrderController {
                 + order.getStore().getCode();
     }
 
-    // Calculates the overall work status shown on the Orders page.
-    private String calculateWorkStatus(Long orderId) {
+    private Customer createCustomer(
+            String name,
+            String phone,
+            String address,
+            Store store) {
 
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException(
+                    "New customer name is required"
+            );
+        }
+
+        Customer customer = new Customer();
+        customer.setFullName(name.trim());
+        customer.setPhone(
+                phone == null ? null : phone.trim()
+        );
+        customer.setAddress(
+                address == null ? null : address.trim()
+        );
+        customer.setStore(store);
+
+        return customerRepository.save(customer);
+    }
+
+    private void validateOrderTotal(Order order) {
+        if (order.getTotalAmount() == null
+                || order.getTotalAmount()
+                .compareTo(BigDecimal.ZERO) <= 0) {
+
+            throw new IllegalArgumentException(
+                    "Order total must be greater than zero"
+            );
+        }
+    }
+
+    private void validateInitialPayment(
+            BigDecimal paymentAmount,
+            BigDecimal totalAmount) {
+
+        if (paymentAmount.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(
+                    "Initial payment cannot be negative"
+            );
+        }
+
+        if (paymentAmount.compareTo(totalAmount) > 0) {
+            throw new IllegalArgumentException(
+                    "Initial payment cannot be greater than the order total"
+            );
+        }
+    }
+
+    private String normalizePaymentMethod(
+            String paymentMethod) {
+
+        if (paymentMethod == null
+                || paymentMethod.isBlank()) {
+            return "CASH";
+        }
+
+        return paymentMethod.trim().toUpperCase(
+                Locale.ROOT
+        );
+    }
+
+    private void ensureCustomerBelongsToStore(
+            Customer customer,
+            Store selectedStore) {
+
+        if (customer.getStore() == null
+                || !Objects.equals(
+                customer.getStore().getId(),
+                selectedStore.getId()
+        )) {
+            throw new IllegalArgumentException(
+                    "The selected customer does not belong to this store"
+            );
+        }
+    }
+
+    private String calculateWorkStatus(Long orderId) {
         List<OrderItem> items =
                 orderItemRepository.findByOrderId(orderId);
 
@@ -278,11 +371,17 @@ public class OrderController {
 
         boolean anyInProgress = items.stream()
                 .anyMatch(item ->
-                        "IN_PROGRESS".equals(item.getWorkStatus()));
+                        "IN_PROGRESS".equals(
+                                item.getWorkStatus()
+                        )
+                );
 
         boolean allCompleted = items.stream()
                 .allMatch(item ->
-                        "COMPLETED".equals(item.getWorkStatus()));
+                        "COMPLETED".equals(
+                                item.getWorkStatus()
+                        )
+                );
 
         if (allCompleted) {
             return "COMPLETED";
@@ -298,12 +397,49 @@ public class OrderController {
     private Order findOrder(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Order not found"));
+                        new IllegalArgumentException(
+                                "Order not found"
+                        )
+                );
     }
 
     private Store findStore(String storeCode) {
-        return storeRepository.findByCode(storeCode.toLowerCase())
+        if (storeCode == null || storeCode.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Store code is required"
+            );
+        }
+
+        return storeRepository
+                .findByCode(
+                        storeCode.trim().toLowerCase(
+                                Locale.ROOT
+                        )
+                )
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Store not found"));
+                        new IllegalArgumentException(
+                                "Store not found"
+                        )
+                );
+    }
+
+    private User findUser(Principal principal) {
+        return userRepository
+                .findByUsername(principal.getName())
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "User not found"
+                        )
+                );
+    }
+
+    private void checkStoreAccess(
+            Principal principal,
+            Store store) {
+
+        storeAccessService.checkStoreAccess(
+                principal,
+                store.getCode()
+        );
     }
 }
